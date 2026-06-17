@@ -224,17 +224,17 @@ export const Views = {
 
                             <form id="login-form">
                                 <div class="form-group">
-                                    <label class="form-label" for="login-email">Email Address</label>
-                                    <input class="form-input" id="login-email" type="email" placeholder="you@example.com" required value="sarah@example.com">
+                                    <label class="form-label" for="email">Email Address</label>
+                                    <input class="form-input" id="email" type="email" placeholder="you@example.com" required value="sarah@example.com">
                                 </div>
                                 <div class="form-group">
                                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                                        <label class="form-label" for="login-password">Password</label>
+                                        <label class="form-label" for="password">Password</label>
                                         <button type="button" class="footer-btn-link" style="font-size:0.8rem;" id="login-forgot-pwd">Forgot Password?</button>
                                     </div>
-                                    <input class="form-input" id="login-password" type="password" placeholder="••••••••" required value="password">
+                                    <input class="form-input" id="password" type="password" placeholder="••••••••" required value="password">
                                 </div>
-                                <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;" id="login-submit-btn">Login</button>
+                                <button type="submit" class="btn btn-primary" style="width:100%; margin-top:1rem;" id="login-button">Login</button>
                             </form>
                             
                             <div class="auth-footer-links">
@@ -321,8 +321,8 @@ export const Views = {
         // Submit Login Form
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
             
             const res = await DbState.login(email, password);
             if (res.success) {

@@ -1,0 +1,48 @@
+name: Selenium Login E2E Tests
+
+on:
+  push:
+    branches:
+      - supabase-version
+  pull_request:
+    branches:
+      - supabase-version
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Start Local HTTP Server
+        run: |
+          python3 -m http.server 8080 &
+          echo "Local HTTP Server started on port 8080"
+          sleep 3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: selenium-tests/package-lock.json
+
+      - name: Install Test Dependencies
+        run: |
+          cd selenium-tests
+          npm install
+
+      - name: Run E2E Login Tests
+        run: |
+          cd selenium-tests
+          npm run login
+        env:
+          CI: true
+          HEADLESS: true

@@ -7,7 +7,12 @@ const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF
 // Initialize Supabase Client libraries
 const { createClient } = window.supabase;
 export const supabase = createClient(supabaseUrl, supabaseKey);
-export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+        persistSession: false,
+        autoRefreshToken: false
+    }
+});
 
 export const DbState = {
     // Current User Session
@@ -16,7 +21,7 @@ export const DbState = {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return null;
             
-            const { data: profile, error } = await supabase
+            const { data: profile, error } = await supabaseAdmin
                 .from('profiles')
                 .select('*')
                 .eq('id', session.user.id)
@@ -26,7 +31,7 @@ export const DbState = {
                 console.warn("Profile not created for authenticated user. Initializing dummy profile...");
                 // Initialize default profile if it's missing in DB profiles table
                 const avatarCode = session.user.email.substring(0,2).toUpperCase();
-                const { data: newProfile, error: insErr } = await supabase
+                const { data: newProfile, error: insErr } = await supabaseAdmin
                     .from('profiles')
                     .insert([{
                         id: session.user.id,
@@ -61,7 +66,7 @@ export const DbState = {
         }
         
         // Retrieve matching profile record
-        const { data: profile, error: pError } = await supabase
+        const { data: profile, error: pError } = await supabaseAdmin
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
@@ -70,7 +75,7 @@ export const DbState = {
         if (pError) {
             // Profile missing: Create profile dynamically
             const avatar = email.substring(0, 2).toUpperCase();
-            const { data: newProfile } = await supabase
+            const { data: newProfile } = await supabaseAdmin
                 .from('profiles')
                 .insert([{
                     id: data.user.id,
@@ -112,7 +117,7 @@ export const DbState = {
         const user = data.user;
         const avatarText = details.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'US';
         
-        const { error: profileError } = await supabase
+        const { error: profileError } = await supabaseAdmin
             .from('profiles')
             .insert([{
                 id: user.id,
@@ -129,7 +134,7 @@ export const DbState = {
             return { success: false, error: profileError.message };
         }
         
-        const { data: profile } = await supabase
+        const { data: profile } = await supabaseAdmin
             .from('profiles')
             .select('*')
             .eq('id', user.id)
