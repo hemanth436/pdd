@@ -1,0 +1,6 @@
+# Ignore separate nested project directories
+pdd/
+
+# OS specific files
+.DS_Store
+Thumbs.db
