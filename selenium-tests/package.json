@@ -1,0 +1,21 @@
+{
+  "name": "skillswapexchange-selenium-tests",
+  "version": "1.0.0",
+  "description": "E2E Selenium Tests for Skill Swap Exchange",
+  "main": "tests/login.test.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "mocha tests/*.test.js --timeout 20000",
+    "login": "mocha tests/login.test.js --timeout 20000",
+    "generate-report": "node generate_report.js",
+    "run-all": "node run_tests.js"
+  },
+  "devDependencies": {
+    "exceljs": "^4.4.0",
+    "mocha": "^10.7.0",
+    "selenium-webdriver": "^4.16.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.2"
+  }
+}

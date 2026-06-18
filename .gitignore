@@ -1,0 +1,19 @@
+# Ignore separate nested project directories
+pdd/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Node.js E2E dependencies
+node_modules/
+selenium-tests/node_modules/
+appium-tests/node_modules/
+
+# Build and IDE directories
+.gradle/
+.idea/
+.vscode/
+build/
+local.properties
+*.log

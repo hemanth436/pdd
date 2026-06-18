@@ -1,0 +1,17 @@
+{
+  "name": "skillswapexchange-appium-tests",
+  "version": "1.0.0",
+  "description": "E2E Appium Mobile Tests for Skill Swap Exchange",
+  "main": "run_tests.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "mocha tests/*.test.js --timeout 60000",
+    "generate-report": "node generate_report.js",
+    "run-all": "node run_tests.js"
+  },
+  "devDependencies": {
+    "exceljs": "^4.4.0",
+    "mocha": "^10.7.0",
+    "webdriverio": "^8.39.0"
+  }
+}
