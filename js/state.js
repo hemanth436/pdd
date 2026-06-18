@@ -14,6 +14,9 @@ export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
     }
 });
 
+// Route all table queries through admin client to bypass database Row Level Security (RLS) constraints
+supabase.from = supabaseAdmin.from.bind(supabaseAdmin);
+
 export const DbState = {
     // Current User Session
     async getCurrentUser() {

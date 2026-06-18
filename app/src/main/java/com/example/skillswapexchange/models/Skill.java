@@ -1,10 +1,10 @@
 package com.example.skillswapexchange.models;
 
 public class Skill {
-    private String title;
-    private String description;
-    private String userName;
-    private String category;
+    private final String title;
+    private final String description;
+    private final String userName;
+    private final String category;
 
     public Skill(String title, String description, String userName, String category) {
         this.title = title;

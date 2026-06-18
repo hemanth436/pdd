@@ -1,10 +1,10 @@
 package com.example.skillswapexchange.models;
 
 public class User {
-    private String fullName;
-    private String email;
-    private String password;
-    private String mobile;
+    private final String fullName;
+    private final String email;
+    private final String password;
+    private final String mobile;
 
     public User(String fullName, String email, String password, String mobile) {
         this.fullName = fullName;

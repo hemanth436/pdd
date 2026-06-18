@@ -6,7 +6,7 @@ import java.util.List;
 
 public class DataManager {
     private static DataManager instance;
-    private List<User> users = new ArrayList<>();
+    private final List<User> users = new ArrayList<>();
 
     private DataManager() {
         // Initial mock user

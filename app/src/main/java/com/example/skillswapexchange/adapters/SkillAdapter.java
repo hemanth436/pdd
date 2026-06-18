@@ -31,7 +31,7 @@ public class SkillAdapter extends RecyclerView.Adapter<SkillAdapter.SkillViewHol
         holder.tvTitle.setText(skill.getTitle());
         holder.tvCategory.setText(skill.getCategory());
         holder.tvDescription.setText(skill.getDescription());
-        holder.tvUserName.setText("By: " + skill.getUserName());
+        holder.tvUserName.setText(holder.itemView.getContext().getString(R.string.by_user, skill.getUserName()));
     }
 
     @Override

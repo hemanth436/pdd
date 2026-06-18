@@ -2,36 +2,37 @@ package com.example.skillswapexchange;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import com.example.skillswapexchange.databinding.ActivityLoginBinding;
+import com.google.android.material.textfield.TextInputEditText;
 
 public class LoginActivity extends AppCompatActivity {
-
-    private ActivityLoginBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = ActivityLoginBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
+        setContentView(R.layout.activity_login);
 
-        binding.btnLogin.setOnClickListener(v -> {
-            String user = binding.etLoginUser.getText().toString().trim();
-            String pass = binding.etLoginPassword.getText().toString().trim();
+        TextInputEditText etUser = findViewById(R.id.etLoginUser);
+        TextInputEditText etPass = findViewById(R.id.etLoginPassword);
+        Button btnLogin = findViewById(R.id.btnLogin);
+        TextView tvRegister = findViewById(R.id.tvRegisterLink);
 
-            // Mock Login (Accepts any non-empty input)
-            if (!user.isEmpty() && !pass.isEmpty()) {
-                Toast.makeText(this, "Welcome " + user, Toast.LENGTH_SHORT).show();
+        btnLogin.setOnClickListener(v -> {
+            String email = String.valueOf(etUser.getText()).trim();
+            String pass = String.valueOf(etPass.getText()).trim();
+
+            if (DataManager.getInstance().loginUser(email, pass)) {
+                Toast.makeText(this, "Login Successful!", Toast.LENGTH_SHORT).show();
                 startActivity(new Intent(LoginActivity.this, MainActivity.class));
                 finish();
             } else {
-                Toast.makeText(this, "Invalid credentials", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Invalid email or password", Toast.LENGTH_SHORT).show();
             }
         });
 
-        binding.tvRegisterLink.setOnClickListener(v -> {
-            startActivity(new Intent(LoginActivity.this, RegisterActivity.class));
-        });
+        tvRegister.setOnClickListener(v -> startActivity(new Intent(LoginActivity.this, RegisterActivity.class)));
     }
 }

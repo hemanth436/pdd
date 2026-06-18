@@ -25,11 +25,18 @@ public class PostFragment extends Fragment {
         Button btnSubmit = view.findViewById(R.id.btnSubmit);
         
         btnSubmit.setOnClickListener(v -> {
-            String title = etTitle.getText().toString();
-            if (!title.isEmpty()) {
-                Toast.makeText(getContext(), "Skill '" + title + "' posted!", Toast.LENGTH_SHORT).show();
+            String title = String.valueOf(etTitle.getText()).trim();
+            String category = String.valueOf(etCategory.getText()).trim();
+            String description = String.valueOf(etDescription.getText()).trim();
+
+            if (!title.isEmpty() && !category.isEmpty() && !description.isEmpty()) {
+                Toast.makeText(getContext(), "Skill '" + title + "' in " + category + " posted!", Toast.LENGTH_SHORT).show();
+                // Clear fields
+                etTitle.setText("");
+                etCategory.setText("");
+                etDescription.setText("");
             } else {
-                Toast.makeText(getContext(), "Please enter a title", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Please fill in all fields", Toast.LENGTH_SHORT).show();
             }
         });
         

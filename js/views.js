@@ -1038,6 +1038,7 @@ export const Views = {
         const form = document.getElementById('skill-listing-form');
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log("SUBMIT EVENT FIRED on skill-listing-form!");
             const details = {
                 title: document.getElementById('skill-title').value,
                 category: document.getElementById('skill-category').value,
@@ -1046,19 +1047,25 @@ export const Views = {
             };
 
             if (isEditing) {
+                console.log("Editing skill with details:", details);
                 const res = await DbState.editSkill(skillId, details);
+                console.log("EDIT SKILL RESULT:", res);
                 if (res.success) {
                     this.showToast('Skill details saved successfully!', 'success');
                     Router.navigate('dashboard');
                 } else {
+                    console.error("EDIT SKILL FAILED:", res.error);
                     this.showToast(res.error, 'error');
                 }
             } else {
+                console.log("Adding skill with details:", details);
                 const res = await DbState.addSkill(details);
+                console.log("ADD SKILL RESULT:", res);
                 if (res.success) {
                     this.showToast('New skill listing published!', 'success');
                     Router.navigate('dashboard');
                 } else {
+                    console.error("ADD SKILL FAILED:", res.error);
                     this.showToast(res.error, 'error');
                 }
             }

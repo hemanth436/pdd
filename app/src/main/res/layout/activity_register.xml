@@ -16,7 +16,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:layout_marginTop="32dp"
-            android:text="Create Account"
+            android:text="@string/create_account"
             android:textColor="@android:color/white"
             android:textSize="32sp"
             android:textStyle="bold" />
@@ -40,7 +40,7 @@
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Full Name"
+                    android:hint="@string/full_name"
                     app:startIconDrawable="@android:drawable/ic_menu_myplaces">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etFullName"
@@ -54,7 +54,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="Email Address"
+                    android:hint="@string/email_address"
                     app:startIconDrawable="@android:drawable/ic_dialog_email">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etEmail"
@@ -69,7 +69,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="Mobile Number"
+                    android:hint="@string/mobile_number"
                     app:startIconDrawable="@android:drawable/ic_menu_call">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etMobile"
@@ -84,7 +84,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="Skills Offered (e.g. Java, Python)">
+                    android:hint="@string/skills_offered_hint">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etSkillsOffered"
                         android:layout_width="match_parent"
@@ -97,7 +97,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="Password"
+                    android:hint="@string/password"
                     app:passwordToggleEnabled="true"
                     app:startIconDrawable="@android:drawable/ic_lock_idle_lock">
                     <com.google.android.material.textfield.TextInputEditText
@@ -112,7 +112,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="60dp"
                     android:layout_marginTop="24dp"
-                    android:text="Register"
+                    android:text="@string/register"
                     app:cornerRadius="12dp" />
 
                 <TextView
@@ -121,7 +121,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:layout_marginTop="16dp"
-                    android:text="Already have an account? Login"
+                    android:text="@string/already_have_account"
                     android:textColor="?attr/colorPrimary" />
 
             </LinearLayout>

@@ -12,7 +12,7 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Skill Title">
+            android:hint="@string/skill_title">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etTitle"
@@ -24,7 +24,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:hint="Category">
+            android:hint="@string/category">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etCategory"
@@ -36,7 +36,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:hint="Description">
+            android:hint="@string/description">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etDescription"
@@ -52,7 +52,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="Post Skill" />
+            android:text="@string/post_skill_btn" />
 
     </LinearLayout>
 </ScrollView>

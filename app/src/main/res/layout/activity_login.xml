@@ -24,7 +24,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="Skill Swap"
+                android:text="@string/skill_swap"
                 android:textColor="?attr/colorPrimary"
                 android:textSize="28sp"
                 android:textStyle="bold" />
@@ -34,7 +34,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginTop="8dp"
-                android:text="Login to your account"
+                android:text="@string/login_to_account"
                 android:textColor="@android:color/darker_gray" />
 
             <com.google.android.material.textfield.TextInputLayout
@@ -42,7 +42,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="32dp"
-                android:hint="Email/Username"
+                android:hint="@string/email_username"
                 app:startIconDrawable="@android:drawable/ic_menu_myplaces">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etLoginUser"
@@ -55,7 +55,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:hint="Password"
+                android:hint="@string/password"
                 app:passwordToggleEnabled="true"
                 app:startIconDrawable="@android:drawable/ic_lock_idle_lock">
                 <com.google.android.material.textfield.TextInputEditText
@@ -70,7 +70,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:layout_marginTop="24dp"
-                android:text="Login"
+                android:text="@string/login"
                 app:cornerRadius="12dp" />
 
             <TextView
@@ -79,7 +79,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginTop="16dp"
-                android:text="New user? Create Account"
+                android:text="@string/new_user_create"
                 android:textColor="?attr/colorPrimary" />
 
         </LinearLayout>
