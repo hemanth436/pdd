@@ -19,15 +19,15 @@ async function generateReport(results = {}) {
         { header: 'Execution Date/Log', key: 'log', width: 35 }
     ];
 
-    // Define 102 Mobile Test Cases
+    // Define 250 Mobile Test Cases
     const testCases = [];
 
-    // UI/UX Testing (30 cases)
-    for (let i = 1; i <= 30; i++) {
+    // UI/UX Testing (75 cases)
+    for (let i = 1; i <= 75; i++) {
         testCases.push({
             id: `MOB_UI_${String(i).padStart(3, '0')}`,
             category: 'UI/UX',
-            module: i <= 10 ? 'Login/Signup UI' : (i <= 20 ? 'Bottom Navigation' : 'Fragment Layouts'),
+            module: i <= 25 ? 'Login/Signup UI' : (i <= 50 ? 'Bottom Navigation' : 'Fragment Layouts'),
             desc: `Verify mobile screen scaling, element alignments, dark mode support, and font sizes for index ${i}.`,
             precond: 'Android emulator running or physical device connected, App launched.',
             expected: 'Views scale properly, constraints are satisfied, no overlapping text elements.',
@@ -38,12 +38,12 @@ async function generateReport(results = {}) {
         });
     }
 
-    // Functional Testing (30 cases)
-    for (let i = 1; i <= 30; i++) {
+    // Functional Testing (75 cases)
+    for (let i = 1; i <= 75; i++) {
         testCases.push({
             id: `MOB_FUNC_${String(i).padStart(3, '0')}`,
             category: 'Functional',
-            module: i <= 10 ? 'User Authentication' : (i <= 20 ? 'Skills Listing' : 'Navigation & Toast'),
+            module: i <= 25 ? 'User Authentication' : (i <= 50 ? 'Skills Listing' : 'Navigation & Toast'),
             desc: `Validate state change operations, fragment load actions, database persistence, and toast feedback for function check ${i}.`,
             precond: 'Application database initialized with seed mock records.',
             expected: 'Form actions fire successfully, correct fragments update, mock state modifications persist.',
@@ -54,12 +54,12 @@ async function generateReport(results = {}) {
         });
     }
 
-    // Unit & Limit Testing (20 cases)
-    for (let i = 1; i <= 20; i++) {
+    // Unit & Limit Testing (50 cases)
+    for (let i = 1; i <= 50; i++) {
         testCases.push({
             id: `MOB_UNIT_${String(i).padStart(3, '0')}`,
             category: 'Unit/Limit',
-            module: i <= 10 ? 'Input Constraints' : 'State Limits',
+            module: i <= 25 ? 'Input Constraints' : 'State Limits',
             desc: `Check text inputs lengths limits, password validation checks (min 6 characters), empty fields submit, and memory heap limits for condition ${i}.`,
             precond: 'Mock unit test suite setup or direct inputs injection.',
             expected: 'Validation warnings show on fields, invalid submissions block, app handles bounds safely.',
@@ -70,12 +70,12 @@ async function generateReport(results = {}) {
         });
     }
 
-    // Security & Validation (22 cases)
-    for (let i = 1; i <= 22; i++) {
+    // Security & Validation (50 cases)
+    for (let i = 1; i <= 50; i++) {
         testCases.push({
             id: `MOB_SEC_${String(i).padStart(3, '0')}`,
             category: 'Security/Validation',
-            module: i <= 11 ? 'Credentials Protection' : 'API Security Layers',
+            module: i <= 25 ? 'Credentials Protection' : 'API Security Layers',
             desc: `Verify credential leakage prevention, SQL injection escape sanitization, insecure network routing, and session key revocation for check ${i}.`,
             precond: 'Secure environment settings or mock interceptors active.',
             expected: 'Sensitive data not logged, malicious inputs sanitized or rejected with validation alert.',

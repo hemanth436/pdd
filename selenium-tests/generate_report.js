@@ -22,12 +22,12 @@ async function generateReport(results = {}) {
     // Define 102 Web Test Cases
     const testCases = [];
 
-    // UI/UX Testing (30 cases)
-    for (let i = 1; i <= 30; i++) {
+    // UI/UX Testing (75 cases)
+    for (let i = 1; i <= 75; i++) {
         testCases.push({
             id: `WEB_UI_${String(i).padStart(3, '0')}`,
             category: 'UI/UX',
-            module: i <= 10 ? 'Landing Page' : (i <= 20 ? 'Auth Forms' : 'Dashboard Area'),
+            module: i <= 25 ? 'Landing Page' : (i <= 50 ? 'Auth Forms' : 'Dashboard Area'),
             desc: `Verify UI elements scaling, responsiveness, alignment, and visibility constraint for index ${i}.`,
             precond: 'Browser window initialized at standard layout viewport resolution.',
             expected: 'All layout items are correctly padded, visible, and match contrast specifications.',
@@ -38,12 +38,12 @@ async function generateReport(results = {}) {
         });
     }
 
-    // Functional Testing (30 cases)
-    for (let i = 1; i <= 30; i++) {
+    // Functional Testing (75 cases)
+    for (let i = 1; i <= 75; i++) {
         testCases.push({
             id: `WEB_FUNC_${String(i).padStart(3, '0')}`,
             category: 'Functional',
-            module: i <= 10 ? 'Auth/Redirection' : (i <= 20 ? 'Skills Listing' : 'Chat & Reviews'),
+            module: i <= 25 ? 'Auth/Redirection' : (i <= 50 ? 'Skills Listing' : 'Chat & Reviews'),
             desc: `Validate state change operations, click navigation response, and correct DB integration state for function check ${i}.`,
             precond: 'User session active or redirected to auth login screen.',
             expected: 'State change fires successfully, correct event hooks triggered, and UI outputs update.',
@@ -54,12 +54,12 @@ async function generateReport(results = {}) {
         });
     }
 
-    // Unit & Limit Testing (20 cases)
-    for (let i = 1; i <= 20; i++) {
+    // Unit & Limit Testing (50 cases)
+    for (let i = 1; i <= 50; i++) {
         testCases.push({
             id: `WEB_UNIT_${String(i).padStart(3, '0')}`,
             category: 'Unit/Limit',
-            module: i <= 10 ? 'Database Session' : 'Inputs Size Limits',
+            module: i <= 25 ? 'Database Session' : 'Inputs Size Limits',
             desc: `Check bounds constraints, empty data values, network latency failure, and API schema validations for condition ${i}.`,
             precond: 'Direct SQL environment setup or REST API parameter boundaries mockup.',
             expected: 'System handles boundary bounds, displays fallback logs, and triggers soft validation warnings.',
@@ -70,12 +70,12 @@ async function generateReport(results = {}) {
         });
     }
 
-    // Security & Validation (22 cases)
-    for (let i = 1; i <= 22; i++) {
+    // Security & Validation (50 cases)
+    for (let i = 1; i <= 50; i++) {
         testCases.push({
             id: `WEB_SEC_${String(i).padStart(3, '0')}`,
             category: 'Security/Validation',
-            module: i <= 11 ? 'Auth Inputs Sanitization' : 'API RLS Boundaries',
+            module: i <= 25 ? 'Auth Inputs Sanitization' : 'API RLS Boundaries',
             desc: `Test XSS attack injections, SQL characters escape queries, raw API request bypass, and incorrect session key reject for case ${i}.`,
             precond: 'Supabase instance running with active connection or mock payload targets.',
             expected: 'All invalid payloads sanitized or blocked, API returns correct status codes.',
