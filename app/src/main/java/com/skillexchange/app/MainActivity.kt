@@ -1,6 +1,8 @@
 package com.skillexchange.app
 
 import android.os.Bundle
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -12,22 +14,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.webkit.WebViewAssetLoader
 import com.skillexchange.app.ui.theme.SkillExchangeTheme
 
 class MainActivity : ComponentActivity() {
     private var webView: WebView? = null
-    private var webServer: AppWebServer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Start internal embedded web server on port 8080
-        try {
-            webServer = AppWebServer(this, 8080)
-            webServer?.start()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
 
         setContent {
             SkillExchangeTheme {
@@ -36,17 +30,12 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     WebAppContainer(
-                        url = "http://127.0.0.1:8080/",
+                        url = "https://appassets.androidplatform.net/assets/login.html",
                         onWebViewCreated = { webView = it }
                     )
                 }
             }
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        webServer?.stop()
     }
 
     @Deprecated("Deprecated in Java")
@@ -63,6 +52,10 @@ class MainActivity : ComponentActivity() {
 fun WebAppContainer(url: String, onWebViewCreated: (WebView) -> Unit) {
     AndroidView(
         factory = { context ->
+            val assetLoader = WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
+                .build()
+
             WebView(context).apply {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
@@ -75,9 +68,18 @@ fun WebAppContainer(url: String, onWebViewCreated: (WebView) -> Unit) {
                 settings.cacheMode = WebSettings.LOAD_NO_CACHE
 
                 webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(view: WebView?, loadingUrl: String?): Boolean {
-                        loadingUrl?.let { view?.loadUrl(it) }
-                        return true
+                    override fun shouldInterceptRequest(
+                        view: WebView?,
+                        request: WebResourceRequest?
+                    ): WebResourceResponse? {
+                        return request?.url?.let { assetLoader.shouldInterceptRequest(it) }
+                    }
+
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView?,
+                        request: WebResourceRequest?
+                    ): Boolean {
+                        return false
                     }
                 }
 
