@@ -3,7 +3,7 @@ import socketserver
 import os
 import socket
 
-PORT = 8080
+PORT = 8085
 DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app/build/outputs/apk/debug")
 
 class Handler(http.server.SimpleHTTPRequestHandler):

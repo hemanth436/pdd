@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { HelpCircle, CheckCircle, XCircle, Clock, Sparkles, MessageSquare, Video, ArrowRight } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { HelpCircle, CheckCircle, XCircle, Clock, Sparkles, MessageSquare, Video, ArrowRight, Bell, CheckCircle2 } from 'lucide-react';
 import axios from 'axios';
 import Link from 'next/link';
+import io from 'socket.io-client';
 
 interface RequestItem {
   _id: string;
@@ -31,6 +32,9 @@ export default function RequestsPage() {
   const [sentRequests, setSentRequests] = useState<RequestItem[]>([]);
   const [receivedRequests, setReceivedRequests] = useState<RequestItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notificationToast, setNotificationToast] = useState<string | null>(null);
+
+  const socketRef = useRef<any>(null);
 
   const apiUri = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5001' && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5000' ? process.env.NEXT_PUBLIC_API_URL : '';
 
@@ -40,8 +44,34 @@ export default function RequestsPage() {
       const user = JSON.parse(stored);
       setActiveUser(user);
       fetchRequests(user);
+
+      // Connect to Socket.IO for real-time request updates
+      const socket = io(apiUri);
+      socketRef.current = socket;
+
+      socket.on('swap_request_created', (data: any) => {
+        fetchRequests(user);
+        const userId = user.id || user._id;
+        if (data.providerId === userId || data.providerId?.toString() === userId?.toString()) {
+          showNotification('New Swap Inquiry received from a peer!');
+        }
+      });
+
+      socket.on('swap_request_updated', (data: any) => {
+        fetchRequests(user);
+        showNotification(`Swap request status updated to "${data.status}"!`);
+      });
+
+      return () => {
+        socket.disconnect();
+      };
     }
   }, []);
+
+  const showNotification = (msg: string) => {
+    setNotificationToast(msg);
+    setTimeout(() => setNotificationToast(null), 4000);
+  };
 
   const fetchRequests = async (user: any) => {
     const userId = user.id || user._id;
@@ -61,50 +91,24 @@ export default function RequestsPage() {
     }
   };
 
-  const seedDemoRequests = () => {
-    if (!activeUser) return;
-    const userId = activeUser.id || activeUser._id;
-    
-    setSentRequests([
-      {
-        _id: 'demo_req_1',
-        requesterId: { _id: userId, fullName: activeUser.fullName, username: activeUser.username },
-        providerId: { _id: 'u1', fullName: 'Sarah Jenkins', username: 'sarah_j' },
-        skillId: { _id: 's101', title: 'Swift & iOS Core Architecture', category: 'Mobile Development' },
-        status: 'pending',
-        createdAt: new Date(Date.now() - 1800000).toISOString()
-      }
-    ]);
-    
-    setReceivedRequests([
-      {
-        _id: 'demo_req_2',
-        requesterId: { _id: 'u2', fullName: 'Alex Rivera', username: 'alex_r' },
-        providerId: { _id: userId, fullName: activeUser.fullName, username: activeUser.username },
-        skillId: { _id: 's202', title: 'Interactive Figma Prototyping', category: 'Graphic Design' },
-        status: 'pending',
-        createdAt: new Date(Date.now() - 3600000).toISOString()
-      }
-    ]);
-  };
-
   const handleUpdateRequest = async (requestId: string, newStatus: string) => {
     if (!activeUser) return;
     const userId = activeUser.id || activeUser._id;
+
+    // Optimistic UI update
+    setReceivedRequests(prev => 
+      prev.map(r => r._id === requestId ? { ...r, status: newStatus } : r)
+    );
 
     try {
       await axios.put(`${apiUri}/api/requests/${requestId}`, {
         status: newStatus
       });
-      fetchRequests(userId);
+      showNotification(`Swap request successfully ${newStatus}!`);
+      fetchRequests(activeUser);
     } catch (err) {
-      // Offline fallback state updater
-      setReceivedRequests(prev => 
-        prev.map(r => r._id === requestId ? { ...r, status: newStatus } : r)
-      );
-      setSentRequests(prev => 
-        prev.map(r => r._id === requestId ? { ...r, status: newStatus } : r)
-      );
+      console.warn('Failed to update request status.');
+      fetchRequests(activeUser);
     }
   };
 
@@ -116,10 +120,21 @@ export default function RequestsPage() {
     );
   }
 
-  const hasNoRequests = sentRequests.length === 0 && receivedRequests.length === 0;
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
+
+      {/* Floating Request Notification Toast */}
+      {notificationToast && (
+        <div className="fixed top-6 right-6 z-[100] glass-panel bg-[#0D121F] border border-emerald-500/40 p-4 rounded-2xl shadow-2xl flex items-center gap-3 text-white max-w-sm animate-bounce">
+          <div className="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-xs">
+            <Bell className="w-5 h-5" />
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <strong className="text-xs font-bold block truncate">Request Notification</strong>
+            <p className="text-xxs text-slate-300 truncate mt-0.5">{notificationToast}</p>
+          </div>
+        </div>
+      )}
       
       {/* Header section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -127,15 +142,6 @@ export default function RequestsPage() {
           <h1 className="text-3xl font-bold font-outfit">Swap Inquiries & Requests</h1>
           <p className="text-slate-500 dark:text-gray-400 text-sm mt-1">Review connection requests from peers requesting to swap learning sessions.</p>
         </div>
-
-        {hasNoRequests && !loading && (
-          <button 
-            onClick={seedDemoRequests}
-            className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold rounded-xl hover:brightness-110 flex items-center gap-1.5 shadow-lg shadow-indigo-500/10 transition-transform hover:scale-[1.02]"
-          >
-            <Sparkles className="w-4 h-4 text-yellow-300" /> Generate Demo Requests
-          </button>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -193,17 +199,17 @@ export default function RequestsPage() {
                       </div>
                     ) : (
                       <div className="flex items-center justify-between w-full">
-                        <span className={`px-3 py-1 rounded-full text-xxs font-extrabold uppercase tracking-wide ${req.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'}`}>
+                        <span className={`px-3 py-1 rounded-full text-xxs font-extrabold uppercase tracking-wide ${req.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
                           Status: {req.status}
                         </span>
 
                         {req.status === 'accepted' && (
                           <div className="flex items-center gap-2">
-                            <Link href="/dashboard/messages" className="p-2 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/15" title="Go to Chat">
-                              <MessageSquare className="w-4 h-4" />
+                            <Link href="/dashboard/messages" className="p-2 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/15 flex items-center gap-1 text-xs font-bold" title="Go to Chat">
+                              <MessageSquare className="w-4 h-4" /> Chat
                             </Link>
-                            <Link href="/dashboard/sessions" className="p-2 bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 rounded-xl border border-purple-500/15" title="Go to Video Call">
-                              <Video className="w-4 h-4" />
+                            <Link href="/dashboard/sessions" className="p-2 bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 rounded-xl border border-purple-500/15 flex items-center gap-1 text-xs font-bold" title="Go to Video Call">
+                              <Video className="w-4 h-4" /> Call
                             </Link>
                           </div>
                         )}
@@ -252,17 +258,17 @@ export default function RequestsPage() {
                   </div>
 
                   <div className="flex items-center justify-between border-t border-slate-200/30 dark:border-slate-800/30 pt-4 mt-2">
-                    <span className={`px-3 py-1 rounded-full text-xxs font-extrabold uppercase tracking-wide ${req.status === 'pending' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : req.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'}`}>
+                    <span className={`px-3 py-1 rounded-full text-xxs font-extrabold uppercase tracking-wide ${req.status === 'pending' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : req.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
                       Status: {req.status}
                     </span>
 
                     {req.status === 'accepted' && (
                       <div className="flex items-center gap-2">
-                        <Link href="/dashboard/messages" className="p-2 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/15" title="Go to Chat">
-                          <MessageSquare className="w-4 h-4" />
+                        <Link href="/dashboard/messages" className="p-2 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/15 flex items-center gap-1 text-xs font-bold" title="Go to Chat">
+                          <MessageSquare className="w-4 h-4" /> Chat
                         </Link>
-                        <Link href="/dashboard/sessions" className="p-2 bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 rounded-xl border border-purple-500/15" title="Go to Video Call">
-                          <Video className="w-4 h-4" />
+                        <Link href="/dashboard/sessions" className="p-2 bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 rounded-xl border border-purple-500/15 flex items-center gap-1 text-xs font-bold" title="Go to Video Call">
+                          <Video className="w-4 h-4" /> Call
                         </Link>
                       </div>
                     )}

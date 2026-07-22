@@ -1,20 +1,38 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
-const Skill = require('../models/Skill');
-const SwapRequest = require('../models/SwapRequest');
-const Feedback = require('../models/Feedback');
+const { db } = require('../config/supabase');
 
-// 1. Get Administrative Dashboard Stats
+// 1. Get Administrative Dashboard Stats from Supabase
 router.get('/stats', async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments();
-    const totalSkills = await Skill.countDocuments();
-    const totalRequests = await SwapRequest.countDocuments();
-    const activeUsers = await User.countDocuments({ status: 'active' });
+    const { data: profiles } = await db.from('profiles').select('*');
+    const { data: skills } = await db.from('skills').select('*');
+    const { data: swaps } = await db.from('swaps').select('*');
+    const { data: reports } = await db.from('reports').select('*');
 
-    const usersList = await User.find({}, '-password').sort({ createdAt: -1 });
-    const feedbackList = await Feedback.find().sort({ createdAt: -1 });
+    const totalUsers = (profiles || []).length;
+    const totalSkills = (skills || []).length;
+    const totalRequests = (swaps || []).length;
+    const activeUsers = (profiles || []).filter(p => !p.suspended).length;
+
+    const formattedUsers = (profiles || []).map(p => ({
+      _id: p.id,
+      id: p.id,
+      fullName: p.name || 'User',
+      email: p.email,
+      username: p.email.split('@')[0],
+      role: p.role,
+      status: p.suspended ? 'blocked' : 'active',
+      createdAt: p.created_at
+    }));
+
+    const formattedFeedback = (reports || []).map(r => ({
+      _id: r.id,
+      name: 'Report Ticket',
+      email: r.reporter_id,
+      messageText: r.reason,
+      createdAt: r.created_at
+    }));
 
     res.json({
       stats: {
@@ -23,15 +41,15 @@ router.get('/stats', async (req, res) => {
         total_requests: totalRequests,
         active_users: activeUsers
       },
-      users: usersList,
-      feedback: feedbackList
+      users: formattedUsers,
+      feedback: formattedFeedback
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// 2. Perform Account Action (Suspend, Approve, Delete)
+// 2. Perform Account Action in Supabase (Suspend, Approve, Delete)
 router.post('/action', async (req, res) => {
   try {
     const { targetUserId, adminAction } = req.body;
@@ -40,19 +58,14 @@ router.post('/action', async (req, res) => {
       return res.status(400).json({ message: 'Missing parameters' });
     }
 
-    const user = await User.findById(targetUserId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
     if (adminAction === 'block') {
-      user.status = 'blocked';
-      await user.save();
+      await db.from('profiles').update({ suspended: true }).eq('id', targetUserId);
       res.json({ message: 'User account has been suspended successfully.' });
     } else if (adminAction === 'approve') {
-      user.status = 'active';
-      await user.save();
+      await db.from('profiles').update({ suspended: false, approved: true }).eq('id', targetUserId);
       res.json({ message: 'User account has been activated successfully.' });
     } else if (adminAction === 'delete') {
-      await User.findByIdAndDelete(targetUserId);
+      await db.from('profiles').delete().eq('id', targetUserId);
       res.json({ message: 'User account removed from database.' });
     } else {
       res.status(400).json({ message: 'Admin action type not supported' });

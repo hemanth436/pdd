@@ -76,6 +76,9 @@ dependencies {
     // AndroidX WebKit for WebViewAssetLoader
     implementation 'androidx.webkit:webkit:1.10.0'
 
+    // NanoHTTPD embedded lightweight HTTP server for Android
+    implementation 'org.nanohttpd:nanohttpd:2.3.1'
+
     testImplementation 'junit:junit:4.13.2'
 
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'

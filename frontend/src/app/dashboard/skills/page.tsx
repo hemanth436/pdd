@@ -58,34 +58,14 @@ export default function SkillsPage() {
     const userId = user.id || user._id;
     setLoading(true);
     try {
-      const res = await axios.get(`${apiUri}/api/skills`);
+      const res = await axios.get(`${apiUri}/api/skills`, {
+        params: { userId }
+      });
       const allSkills: SkillItem[] = res.data || [];
-      const filtered = allSkills.filter(s => s.userId && (s.userId._id === userId || (s.userId as any) === userId));
-      
-      if (filtered.length === 0) {
-        setUserSkills([
-          {
-            _id: 's101',
-            userId: { _id: userId, fullName: user.fullName || 'Active User' },
-            title: 'Swift & iOS Core Architecture',
-            description: 'Learn MVC/MVVM layout modeling, state widgets, and API fetching bindings in SwiftUI.',
-            category: 'Mobile Development',
-            type: 'offered'
-          },
-          {
-            _id: 's102',
-            userId: { _id: userId, fullName: user.fullName || 'Active User' },
-            title: 'Interactive Figma Prototyping',
-            description: 'Learn Figma component variables, interactive variants, responsive auto-layouts, and design system rules.',
-            category: 'Graphic Design',
-            type: 'offered'
-          }
-        ]);
-      } else {
-        setUserSkills(filtered);
-      }
+      const filtered = allSkills.filter(s => s.userId && (s.userId._id === userId || s.userId.id === userId || (s.userId as any) === userId));
+      setUserSkills(filtered);
     } catch (err) {
-      console.warn('Failed to fetch user skills, using mock data.');
+      console.warn('Failed to fetch user skills.');
       setUserSkills([]);
     } finally {
       setLoading(false);
@@ -115,40 +95,17 @@ export default function SkillsPage() {
       setSkillDesc('');
       setSkillCategory('');
       
-      // Refresh list
+      // Refresh list from database
       fetchUserSkills(activeUser);
       
       setTimeout(() => {
         setIsModalOpen(false);
         setModalSuccess('');
-      }, 1500);
+      }, 1200);
     } catch (err: any) {
       const serverMsg = err.response?.data?.message;
-      if (err.response && err.response.status === 400) {
-        setModalError(serverMsg || 'Please fill in all mandatory fields.');
-        setModalSuccess('');
-      } else {
-        setModalSuccess('Listing created successfully!');
-        setModalError('');
-        const mockNew: SkillItem = {
-          _id: 's_mock_' + Date.now(),
-          userId: { _id: userId, fullName: activeUser.fullName },
-          title: skillTitle,
-          description: skillDesc,
-          category: skillCategory,
-          type: skillType
-        };
-        setUserSkills(prev => [mockNew, ...prev]);
-        
-        setSkillTitle('');
-        setSkillDesc('');
-        setSkillCategory('');
-        
-        setTimeout(() => {
-          setIsModalOpen(false);
-          setModalSuccess('');
-        }, 1500);
-      }
+      setModalError(serverMsg || 'Failed to publish skill listing. Please check mandatory fields.');
+      setModalSuccess('');
     }
   };
 
@@ -159,7 +116,7 @@ export default function SkillsPage() {
       await axios.delete(`${apiUri}/api/skills/${skillId}`);
       setUserSkills(prev => prev.filter(s => s._id !== skillId));
     } catch (err) {
-      alert('Delete request completed (simulated removal).');
+      console.warn('Failed to delete skill from database.');
       setUserSkills(prev => prev.filter(s => s._id !== skillId));
     }
   };

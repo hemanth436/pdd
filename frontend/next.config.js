@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   allowedDevOrigins: [
     'localhost:3000',
     '*.loca.lt',
@@ -13,6 +12,10 @@ const nextConfig = {
       {
         source: '/api/:path*',
         destination: 'http://localhost:5001/api/:path*',
+      },
+      {
+        source: '/socket.io/:path*',
+        destination: 'http://localhost:5001/socket.io/:path*',
       },
     ];
   },

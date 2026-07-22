@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Home, User, FolderPlus, HelpCircle, Mail, Calendar, Settings, LogOut, LayoutDashboard, Shield } from 'lucide-react';
+import { Home, User, FolderPlus, HelpCircle, Mail, Calendar, Settings, LogOut, LayoutDashboard, Shield, PhoneCall, PhoneOff } from 'lucide-react';
+import io from 'socket.io-client';
 
 export default function DashboardLayout({
   children,
@@ -13,6 +14,9 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [activeUser, setActiveUser] = useState<any>(null);
+  const [globalIncomingCall, setGlobalIncomingCall] = useState<any>(null);
+
+  const apiUri = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5001' && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5000' ? process.env.NEXT_PUBLIC_API_URL : '';
 
   useEffect(() => {
     // Session authorization checks
@@ -20,7 +24,23 @@ export default function DashboardLayout({
     if (!stored) {
       router.push('/login');
     } else {
-      setActiveUser(JSON.parse(stored));
+      const user = JSON.parse(stored);
+      setActiveUser(user);
+
+      // Listen for incoming call notifications across entire dashboard
+      const userId = user.id || user._id;
+      const socket = io(apiUri);
+
+      socket.on('incoming_call', (callData: any) => {
+        const { receiverId } = callData;
+        if (!receiverId || receiverId === userId || receiverId?.toString() === userId?.toString()) {
+          setGlobalIncomingCall(callData);
+        }
+      });
+
+      return () => {
+        socket.disconnect();
+      };
     }
   }, []);
 
@@ -40,7 +60,49 @@ export default function DashboardLayout({
   ];
 
   return (
-    <div className="flex-1 flex min-h-screen bg-slate-50 dark:bg-[#0B0F19]">
+    <div className="flex-1 flex min-h-screen bg-slate-50 dark:bg-[#0B0F19] relative">
+      {/* Global Incoming Call Ringing Notification Overlay */}
+      {globalIncomingCall && pathname !== '/dashboard/sessions' && (
+        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
+          <div className="w-full max-w-sm glass-panel p-8 rounded-3xl text-center space-y-6 border border-indigo-500/40 shadow-2xl relative overflow-hidden text-white bg-[#0D121F]">
+            <div className="relative w-24 h-24 mx-auto rounded-full bg-indigo-500/20 flex items-center justify-center border-2 border-indigo-400">
+              <PhoneCall className="w-10 h-10 text-indigo-400 animate-bounce" />
+              <span className="absolute inset-0 rounded-full border-4 border-indigo-500/40 animate-ping"></span>
+            </div>
+            
+            <div>
+              <span className="px-3.5 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-extrabold uppercase tracking-widest rounded-full">
+                Incoming Video Call Ringing...
+              </span>
+              <h3 className="text-xl font-extrabold mt-3 text-white font-outfit">
+                {globalIncomingCall.senderName || 'Peer Instructor'}
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Wants to start session: <span className="font-bold text-indigo-400">{globalIncomingCall.sessionObj?.topic || 'Skill Swap Video Session'}</span>
+              </p>
+            </div>
+
+            <div className="flex gap-4 pt-2">
+              <button 
+                onClick={() => setGlobalIncomingCall(null)} 
+                className="flex-1 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 text-xs font-bold rounded-xl transition-all"
+              >
+                Decline
+              </button>
+              <button 
+                onClick={() => {
+                  setGlobalIncomingCall(null);
+                  router.push('/dashboard/sessions');
+                }} 
+                className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02]"
+              >
+                Attend Call
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar Navigation */}
       <aside className="w-64 border-r border-slate-200/50 dark:border-slate-800/60 bg-white dark:bg-[#0D121F] p-6 flex flex-col justify-between">
         <div>

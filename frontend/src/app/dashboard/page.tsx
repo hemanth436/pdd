@@ -145,27 +145,8 @@ export default function DashboardPage() {
       fetchDashboardData(userId);
     } catch (err: any) {
       const serverMsg = err.response?.data?.message;
-      if (err.response && err.response.status === 400) {
-        setFormError(serverMsg || 'Please fill in all mandatory fields.');
-        setFormSuccess('');
-      } else {
-        // Create skill locally for smooth user experience
-        setFormSuccess('Skill listing created successfully!');
-        setFormError('');
-        
-        const newMockSkill: SkillItem = {
-          _id: 'mock_s_' + Date.now(),
-          userId: { _id: userId, fullName: activeUser.fullName, profilePhoto: '', skillsOffered: skillTitle },
-          title: skillTitle,
-          description: skillDesc,
-          category: skillCategory,
-          type: skillType
-        };
-        setSkills(prev => [newMockSkill, ...prev]);
-        setSkillTitle('');
-        setSkillDesc('');
-        setSkillCategory('');
-      }
+      setFormError(serverMsg || 'Failed to publish skill listing. Please check connection and try again.');
+      setFormSuccess('');
     }
   };
 
@@ -180,14 +161,7 @@ export default function DashboardPage() {
       // Refresh data
       fetchDashboardData(userId);
     } catch (err) {
-      alert('Updating status successfully simulated.');
-      // Update local state if running offline/mock mode
-      setReceivedRequests(prev => 
-        prev.map(r => r._id === requestId ? { ...r, status: newStatus } : r)
-      );
-      setSentRequests(prev => 
-        prev.map(r => r._id === requestId ? { ...r, status: newStatus } : r)
-      );
+      console.warn('Failed to update request status.');
     }
   };
 

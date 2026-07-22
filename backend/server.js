@@ -3,7 +3,7 @@ const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db');
+const { seedDefaultSupabaseData, db } = require('./config/supabase');
 
 // Load configurations
 dotenv.config();
@@ -21,8 +21,8 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(express.json());
 
-// Database Connect
-connectDB();
+// Initialize Supabase Database Connection
+seedDefaultSupabaseData();
 
 // ----------------------------------------------------
 // Express API Router Mounts
@@ -33,7 +33,7 @@ app.use('/api/requests', require('./routes/requests'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/admin', require('./routes/admin'));
 
-// Feedback Form submit endpoint
+// Feedback Form submit endpoint via Supabase
 app.post('/api/feedback', async (req, res) => {
   try {
     const { name, email, messageText } = req.body;
@@ -41,14 +41,16 @@ app.post('/api/feedback', async (req, res) => {
       return res.status(400).json({ message: 'All feedback fields are mandatory' });
     }
     
-    // Save to Database if connected
-    const Feedback = require('./models/Feedback');
-    const newFeedback = new Feedback({ name, email, messageText });
-    await newFeedback.save();
+    // Save report to Supabase
+    await db.from('reports').insert([{
+      reporter_id: '00000000-0000-0000-0000-000000000000',
+      reported_user_id: '00000000-0000-0000-0000-000000000000',
+      reason: `[Feedback from ${name} <${email}>]: ${messageText}`,
+      status: 'pending'
+    }]);
 
     res.status(201).json({ message: 'Feedback submitted successfully' });
   } catch (error) {
-    // Return mock successful response if DB model fails or is un-connected
     res.status(201).json({ message: 'Feedback submitted (Simulation fallback success)' });
   }
 });
@@ -57,32 +59,57 @@ app.post('/api/feedback', async (req, res) => {
 app.get('/api/status', (req, res) => {
   res.json({
     status: 'healthy',
-    system: 'Skill Exchange Platform REST API',
+    system: 'Skill Exchange Platform REST API (Supabase Backend)',
     uptime: process.uptime()
   });
 });
 
 // ----------------------------------------------------
-// Socket.IO Real-Time Messaging & WebRTC Handshake
+// Socket.IO Real-Time Messaging, Online Status & WebRTC
 // ----------------------------------------------------
+const onlineUsers = new Map();
+
 io.on('connection', (socket) => {
   console.log(`Socket client connected: ${socket.id}`);
 
+  // Register online user status
+  socket.on('user_online', ({ userId }) => {
+    if (userId) {
+      const cleanId = userId.toString();
+      onlineUsers.set(cleanId, socket.id);
+      socket.userId = cleanId;
+      io.emit('online_users_list', Array.from(onlineUsers.keys()));
+      console.log(`User ${cleanId} registered online.`);
+    }
+  });
+
+  // Request online users list
+  socket.on('get_online_users', () => {
+    socket.emit('online_users_list', Array.from(onlineUsers.keys()));
+  });
+
   // User enters a direct messaging thread room
   socket.on('join_room', ({ userId, roomPartnerId }) => {
-    // Generate a sorted unique room identifier for the two users
     const room = [userId, roomPartnerId].sort().join('_');
     socket.join(room);
     console.log(`Client ${userId} joined discussion room: ${room}`);
   });
 
-  // Emits real-time messages
+  // Emits real-time messages & notifications
   socket.on('send_message', (messageData) => {
     const { senderId, receiverId, messageText } = messageData;
     const room = [senderId, receiverId].sort().join('_');
     
-    // Broadcast message to everyone else in the room (prevents double messages on sender side)
+    // Broadcast to room
     socket.broadcast.to(room).emit('receive_message', {
+      senderId,
+      receiverId,
+      messageText,
+      createdAt: new Date()
+    });
+
+    // Broadcast message notification event to target user
+    socket.broadcast.emit('message_notification', {
       senderId,
       receiverId,
       messageText,
@@ -92,7 +119,6 @@ io.on('connection', (socket) => {
 
   // WebRTC Signal exchange for Video Sessions
   socket.on('webrtc_signal', ({ targetUserId, signal }) => {
-    // Transmit signaling data to the matching target user
     socket.broadcast.emit('webrtc_signal_received', {
       senderSocketId: socket.id,
       signal
@@ -110,12 +136,17 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    if (socket.userId) {
+      onlineUsers.delete(socket.userId);
+      io.emit('online_users_list', Array.from(onlineUsers.keys()));
+      console.log(`User ${socket.userId} went offline.`);
+    }
     console.log(`Socket client disconnected: ${socket.id}`);
   });
 });
 
 // Listen
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
   console.log(`Backend server successfully listening on port: ${PORT}`);
 });
