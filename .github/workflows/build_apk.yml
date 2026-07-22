@@ -27,16 +27,22 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --no-daemon
+    - name: Build Debug & Signed Release APKs
+      run: ./gradlew assembleDebug assembleRelease --no-daemon
 
-    - name: Upload APK Artifact
+    - name: Upload Debug APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: SkillSwap-APK
+        name: SkillSwap-Debug-APK
         path: app/build/outputs/apk/debug/app-debug.apk
 
-    - name: Add Download Link Summary
+    - name: Upload Signed Release APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SkillSwap-Release-APK
+        path: app/build/outputs/apk/release/app-release.apk
+
+    - name: Add Build Summary
       run: |
-        echo "### 📱 APK Build Completed Successfully!" >> $GITHUB_STEP_SUMMARY
-        echo "The compiled **SkillSwap APK** is available under **Artifacts** on this workflow run." >> $GITHUB_STEP_SUMMARY
+        echo "### 📱 Native Android APK Build Completed Successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "The compiled **SkillSwap Debug & Signed Release APKs** are available under **Artifacts** on this workflow run." >> $GITHUB_STEP_SUMMARY

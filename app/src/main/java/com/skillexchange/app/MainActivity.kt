@@ -1,113 +1,151 @@
 package com.skillexchange.app
 
 import android.os.Bundle
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.webkit.WebViewAssetLoader
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.skillexchange.app.data.TokenManager
+import com.skillexchange.app.screens.*
+import com.skillexchange.app.ui.ScreenRoute
+import com.skillexchange.app.ui.SkillSwapBottomNavigation
+import com.skillexchange.app.ui.SkillSwapTopAppBar
 import com.skillexchange.app.ui.theme.SkillExchangeTheme
+import com.skillexchange.app.viewmodels.*
 
 class MainActivity : ComponentActivity() {
-    private var webView: WebView? = null
+
+    private lateinit var tokenManager: TokenManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        tokenManager = TokenManager(this)
 
         setContent {
-            SkillExchangeTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    WebAppContainer(
-                        url = "https://appassets.androidplatform.net/assets/login.html",
-                        onWebViewCreated = { webView = it }
-                    )
-                }
-            }
-        }
-    }
+            var isDarkTheme by remember { mutableStateOf(true) }
+            val navController = rememberNavController()
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route ?: ScreenRoute.LANDING.route
 
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        if (webView?.canGoBack() == true) {
-            webView?.goBack()
-        } else {
-            super.onBackPressed()
-        }
-    }
-}
+            val marketplaceViewModel: MarketplaceViewModel = viewModel()
+            val skillViewModel: SkillViewModel = viewModel()
+            val requestViewModel: RequestViewModel = viewModel()
+            val chatViewModel: ChatViewModel = viewModel()
+            val profileViewModel: ProfileViewModel = viewModel()
+            val adminViewModel: AdminViewModel = viewModel()
 
-@Composable
-fun WebAppContainer(url: String, onWebViewCreated: (WebView) -> Unit) {
-    AndroidView(
-        factory = { context ->
-            val assetLoader = WebViewAssetLoader.Builder()
-                .setDomain("appassets.androidplatform.net")
-                .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
-                .addPathHandler("/", WebViewAssetLoader.AssetsPathHandler(context))
-                .build()
+            val showBottomNav = currentRoute in listOf(
+                ScreenRoute.EXPLORE.route,
+                ScreenRoute.DASHBOARD.route,
+                ScreenRoute.SKILLS.route,
+                ScreenRoute.REQUESTS.route,
+                ScreenRoute.CHAT.route,
+                ScreenRoute.SESSIONS.route
+            )
 
-            WebView(context).apply {
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.databaseEnabled = true
-                settings.allowFileAccess = true
-                settings.allowContentAccess = true
-                settings.loadWithOverviewMode = true
-                settings.useWideViewPort = true
-                settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                settings.cacheMode = WebSettings.LOAD_NO_CACHE
-
-                webViewClient = object : WebViewClient() {
-                    override fun shouldInterceptRequest(
-                        view: WebView?,
-                        request: WebResourceRequest?
-                    ): WebResourceResponse? {
-                        val reqUrl = request?.url ?: return null
-                        val response = assetLoader.shouldInterceptRequest(reqUrl)
-                        if (response != null) return response
-
-                        // Route Fallback Interceptor (/dashboard -> dashboard.html)
-                        val path = reqUrl.path ?: ""
-                        if (!path.contains(".")) {
-                            val cleanPath = path.trim('/').ifEmpty { "index" }
-                            val htmlCandidate = "$cleanPath.html"
-                            try {
-                                val stream = context.assets.open(htmlCandidate)
-                                return WebResourceResponse("text/html", "UTF-8", stream)
-                            } catch (_: Exception) {
-                                try {
-                                    val fallbackStream = context.assets.open("index.html")
-                                    return WebResourceResponse("text/html", "UTF-8", fallbackStream)
-                                } catch (_: Exception) {}
-                            }
+            SkillExchangeTheme(darkTheme = isDarkTheme) {
+                Scaffold(
+                    topBar = {
+                        if (currentRoute != "login" && currentRoute != "register") {
+                            SkillSwapTopAppBar(
+                                currentRoute = currentRoute,
+                                isDarkTheme = isDarkTheme,
+                                onToggleTheme = { isDarkTheme = !isDarkTheme },
+                                onNavigateToProfile = { navController.navigate("profile") }
+                            )
                         }
-                        return null
+                    },
+                    bottomBar = {
+                        if (showBottomNav) {
+                            SkillSwapBottomNavigation(
+                                currentRoute = currentRoute,
+                                onNavigate = { route -> navController.navigate(route) },
+                                isDarkTheme = isDarkTheme
+                            )
+                        }
                     }
-
-                    override fun shouldOverrideUrlLoading(
-                        view: WebView?,
-                        request: WebResourceRequest?
-                    ): Boolean {
-                        return false
+                ) { innerPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = if (tokenManager.isLoggedIn()) ScreenRoute.DASHBOARD.route else ScreenRoute.LANDING.route,
+                        modifier = Modifier.padding(innerPadding)
+                    ) {
+                        composable(ScreenRoute.LANDING.route) {
+                            LandingScreen(navController = navController, isDarkTheme = isDarkTheme)
+                        }
+                        composable("login") {
+                            LoginScreen(
+                                navController = navController,
+                                onLoginSuccess = {
+                                    tokenManager.saveAuthSession("dummy_token", "u_current", "user", "Demo User", "user@example.com")
+                                    navController.navigate(ScreenRoute.DASHBOARD.route) {
+                                        popUpTo(ScreenRoute.LANDING.route) { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+                        composable("register") {
+                            RegisterScreen(navController = navController)
+                        }
+                        composable(ScreenRoute.EXPLORE.route) {
+                            MarketplaceScreen(
+                                navController = navController,
+                                viewModel = marketplaceViewModel,
+                                isDarkTheme = isDarkTheme,
+                                currentUserId = tokenManager.getUserId()
+                            )
+                        }
+                        composable(ScreenRoute.DASHBOARD.route) {
+                            DashboardScreen(navController = navController, viewModel = skillViewModel)
+                        }
+                        composable(ScreenRoute.SKILLS.route) {
+                            MySkillsScreen(
+                                navController = navController,
+                                viewModel = skillViewModel,
+                                isDarkTheme = isDarkTheme,
+                                currentUserId = tokenManager.getUserId()
+                            )
+                        }
+                        composable(ScreenRoute.REQUESTS.route) {
+                            RequestsScreen(
+                                navController = navController,
+                                viewModel = requestViewModel,
+                                isDarkTheme = isDarkTheme,
+                                currentUserId = tokenManager.getUserId()
+                            )
+                        }
+                        composable(ScreenRoute.CHAT.route) {
+                            ChatScreen(navController = navController, userName = "Alex Rivera")
+                        }
+                        composable(ScreenRoute.SESSIONS.route) {
+                            SessionsScreen(navController = navController, isDarkTheme = isDarkTheme)
+                        }
+                        composable(ScreenRoute.PROFILE.route) {
+                            ProfileScreen(
+                                navController = navController,
+                                viewModel = profileViewModel,
+                                isDarkTheme = isDarkTheme,
+                                onLogout = {
+                                    tokenManager.clearSession()
+                                    navController.navigate("login") {
+                                        popUpTo(0)
+                                    }
+                                }
+                            )
+                        }
+                        composable(ScreenRoute.ADMIN.route) {
+                            AdminScreen(navController = navController, viewModel = adminViewModel, isDarkTheme = isDarkTheme)
+                        }
                     }
                 }
-
-                loadUrl(url)
-                onWebViewCreated(this)
             }
-        },
-        modifier = Modifier.fillMaxSize()
-    )
+        }
+    }
 }

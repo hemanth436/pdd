@@ -8,6 +8,7 @@ interface SkillItem {
   _id: string;
   userId: {
     _id: string;
+    id?: string;
     fullName: string;
   };
   title: string;

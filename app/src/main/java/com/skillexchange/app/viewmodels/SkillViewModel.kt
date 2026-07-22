@@ -1,41 +1,59 @@
 package com.skillexchange.app.viewmodels
 
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.skillexchange.app.api.Skill
-import com.skillexchange.app.api.SupabaseConfig
-import io.github.jan.supabase.postgrest.postgrest
+import com.skillexchange.app.api.SkillDto
+import com.skillexchange.app.data.SkillRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class SkillViewModel : ViewModel() {
-    var skills = mutableStateOf<List<Skill>>(emptyList())
-    var isLoading = mutableStateOf(false)
-    var errorMessage = mutableStateOf("")
+class SkillViewModel(
+    private val repository: SkillRepository = SkillRepository()
+) : ViewModel() {
 
-    fun fetchSkills() {
+    private val _userSkills = MutableStateFlow<List<SkillDto>>(emptyList())
+    val userSkills: StateFlow<List<SkillDto>> = _userSkills.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _actionMessage = MutableStateFlow<String?>(null)
+    val actionMessage: StateFlow<String?> = _actionMessage.asStateFlow()
+
+    fun fetchUserSkills(userId: String) {
         viewModelScope.launch {
-            isLoading.value = true
-            try {
-                val result = SupabaseConfig.client.postgrest["skills"].select().decodeList<Skill>()
-                skills.value = result
-            } catch (e: Exception) {
-                errorMessage.value = e.message ?: "Unknown error"
-            } finally {
-                isLoading.value = false
-            }
+            _isLoading.value = true
+            val results = repository.getSkills(userId = userId)
+            _userSkills.value = results
+            _isLoading.value = false
         }
     }
 
-    fun addSkill(title: String, description: String, category: String) {
+    fun addSkill(userId: String, title: String, description: String, category: String, type: String) {
         viewModelScope.launch {
-            try {
-                val newSkill = Skill(title = title, description = description, category = category)
-                SupabaseConfig.client.postgrest["skills"].insert(newSkill)
-                fetchSkills() // Refresh list
-            } catch (e: Exception) {
-                errorMessage.value = e.message ?: "Failed to add skill"
+            _isLoading.value = true
+            val result = repository.createSkill(userId, title, description, category, type)
+            if (result.isSuccess) {
+                _actionMessage.value = "Skill listing created successfully!"
+                fetchUserSkills(userId)
+            } else {
+                _actionMessage.value = "Failed to create listing."
             }
+            _isLoading.value = false
         }
+    }
+
+    fun deleteSkill(userId: String, skillId: String) {
+        viewModelScope.launch {
+            repository.deleteSkill(skillId)
+            _actionMessage.value = "Skill deleted."
+            fetchUserSkills(userId)
+        }
+    }
+
+    fun clearActionMessage() {
+        _actionMessage.value = null
     }
 }
