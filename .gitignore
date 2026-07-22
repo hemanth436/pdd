@@ -6,6 +6,10 @@ app/build/
 .idea/
 .vscode/
 
+# APK Binaries
+*.apk
+SkillSwap.apk
+
 # Node & Next.js
 node_modules/
 frontend/node_modules/
