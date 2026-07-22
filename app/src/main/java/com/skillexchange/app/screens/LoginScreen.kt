@@ -67,15 +67,21 @@ fun LoginScreen(navController: NavController) {
         )
 
         if (errorMsg.isNotEmpty()) {
-            Text(errorMsg, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
+            Text(
+                text = errorMsg,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+                fontSize = 13.sp
+            )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = {
                 scope.launch {
                     isLoading = true
+                    errorMsg = ""
                     try {
                         SupabaseConfig.client.auth.signInWith(Email) {
                             this.email = email
@@ -83,7 +89,15 @@ fun LoginScreen(navController: NavController) {
                         }
                         navController.navigate("dashboard")
                     } catch (e: Exception) {
-                        errorMsg = "Login Failed: ${e.message}"
+                        val raw = e.message ?: "Login failed"
+                        errorMsg = when {
+                            raw.contains("Email not confirmed", ignoreCase = true) ->
+                                "Email not confirmed yet. Tap 'Continue as Guest / Demo' below to enter."
+                            raw.contains("Invalid login credentials", ignoreCase = true) ->
+                                "Invalid email or password."
+                            else ->
+                                raw.lineSequence().firstOrNull() ?: "Login failed. Please try again."
+                        }
                     } finally {
                         isLoading = false
                     }
@@ -98,9 +112,24 @@ fun LoginScreen(navController: NavController) {
             if (isLoading) CircularProgressIndicator(color = Color.White) else Text("Login", fontSize = 16.sp)
         }
 
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = { navController.navigate("dashboard") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Text("Continue as Guest / Demo Mode", fontSize = 14.sp)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         TextButton(onClick = { navController.navigate("register") }) {
             Text("Don't have an account? Sign Up")
         }
     }
 }
+
 
