@@ -1,0 +1,18 @@
+# Build directories
+.gradle/
+build/
+app/build/
+*.iml
+.idea/
+.vscode/
+
+# Node & Next.js
+node_modules/
+frontend/node_modules/
+frontend/.next/
+backend/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+local.properties
