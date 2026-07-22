@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',
   allowedDevOrigins: [
     'localhost:3000',
     '*.loca.lt',

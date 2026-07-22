@@ -26,7 +26,6 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     WebAppContainer(
-                        url = "http://172.23.52.41:3000",
                         onWebViewCreated = { webView = it }
                     )
                 }
@@ -45,13 +44,17 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun WebAppContainer(url: String, onWebViewCreated: (WebView) -> Unit) {
+fun WebAppContainer(onWebViewCreated: (WebView) -> Unit) {
     AndroidView(
         factory = { context ->
             WebView(context).apply {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
                 settings.databaseEnabled = true
+                settings.allowFileAccess = true
+                settings.allowContentAccess = true
+                settings.allowFileAccessFromFileURLs = true
+                settings.allowUniversalAccessFromFileURLs = true
                 settings.loadWithOverviewMode = true
                 settings.useWideViewPort = true
                 settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
@@ -64,12 +67,10 @@ fun WebAppContainer(url: String, onWebViewCreated: (WebView) -> Unit) {
                     }
                 }
 
-                loadUrl(url)
+                // Load bundled web app directly from internal APK assets
+                loadUrl("file:///android_asset/index.html")
                 onWebViewCreated(this)
             }
-        },
-        update = { wv ->
-            // Keep URL in sync
         },
         modifier = Modifier.fillMaxSize()
     )
