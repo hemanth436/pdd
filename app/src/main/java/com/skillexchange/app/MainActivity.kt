@@ -74,19 +74,46 @@ fun WebAppContainer(onWebViewCreated: (WebView) -> Unit) {
                         val url = request?.url ?: return null
                         if (url.host == "appassets.androidplatform.net") {
                             val path = url.path ?: ""
+                            val cleanPath = path.removePrefix("/")
                             val extension = MimeTypeMap.getFileExtensionFromUrl(path)
-                            
-                            // If request has a file extension (e.g. .js, .css, .png, .svg), let WebViewAssetLoader handle it directly
-                            if (extension.isNotEmpty() && extension != "html") {
-                                return assetLoader.shouldInterceptRequest(url)
+
+                            // Explicit MIME type resolution for CSS, JS, JSON, Fonts, and Images
+                            val mimeType = when (extension) {
+                                "css" -> "text/css"
+                                "js" -> "application/javascript"
+                                "json" -> "application/json"
+                                "png" -> "image/png"
+                                "jpg", "jpeg" -> "image/jpeg"
+                                "svg" -> "image/svg+xml"
+                                "woff" -> "font/woff"
+                                "woff2" -> "font/woff2"
+                                "ttf" -> "font/ttf"
+                                else -> if (extension.isNotEmpty()) MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) else null
                             }
 
-                            // Clean route mapping: /register -> register.html, /login -> login.html
-                            val cleanPath = path.removePrefix("/").removeSuffix("/")
+                            if (mimeType != null && mimeType != "text/html") {
+                                // Try direct path
+                                try {
+                                    val stream = context.assets.open(cleanPath)
+                                    return WebResourceResponse(mimeType, "UTF-8", stream)
+                                } catch (_: Exception) {}
+
+                                // Try next/ fallback if _next/ was requested
+                                if (cleanPath.startsWith("_next/")) {
+                                    val altPath = cleanPath.replaceFirst("_next/", "next/")
+                                    try {
+                                        val altStream = context.assets.open(altPath)
+                                        return WebResourceResponse(mimeType, "UTF-8", altStream)
+                                    } catch (_: Exception) {}
+                                }
+                            }
+
+                            // Route resolution for HTML pages (/register, /login, /dashboard, /explore)
+                            val routePath = cleanPath.removeSuffix("/")
                             val candidatePaths = listOf(
-                                if (cleanPath.isEmpty()) "index.html" else "$cleanPath.html",
-                                "$cleanPath/index.html",
-                                cleanPath,
+                                if (routePath.isEmpty()) "index.html" else "$routePath.html",
+                                "$routePath/index.html",
+                                routePath,
                                 "index.html"
                             )
 
@@ -94,9 +121,7 @@ fun WebAppContainer(onWebViewCreated: (WebView) -> Unit) {
                                 try {
                                     val inputStream = context.assets.open(assetPath)
                                     return WebResourceResponse("text/html", "UTF-8", inputStream)
-                                } catch (_: Exception) {
-                                    // Try next candidate
-                                }
+                                } catch (_: Exception) {}
                             }
                         }
                         return assetLoader.shouldInterceptRequest(url)
@@ -108,7 +133,7 @@ fun WebAppContainer(onWebViewCreated: (WebView) -> Unit) {
                     }
                 }
 
-                // Load web app main page
+                // Load main web application
                 loadUrl("https://appassets.androidplatform.net/index.html")
                 onWebViewCreated(this)
             }
