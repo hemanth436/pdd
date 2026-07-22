@@ -53,7 +53,9 @@ fun WebAppContainer(url: String, onWebViewCreated: (WebView) -> Unit) {
     AndroidView(
         factory = { context ->
             val assetLoader = WebViewAssetLoader.Builder()
+                .setDomain("appassets.androidplatform.net")
                 .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
+                .addPathHandler("/", WebViewAssetLoader.AssetsPathHandler(context))
                 .build()
 
             WebView(context).apply {
@@ -72,7 +74,26 @@ fun WebAppContainer(url: String, onWebViewCreated: (WebView) -> Unit) {
                         view: WebView?,
                         request: WebResourceRequest?
                     ): WebResourceResponse? {
-                        return request?.url?.let { assetLoader.shouldInterceptRequest(it) }
+                        val reqUrl = request?.url ?: return null
+                        val response = assetLoader.shouldInterceptRequest(reqUrl)
+                        if (response != null) return response
+
+                        // Route Fallback Interceptor (/dashboard -> dashboard.html)
+                        val path = reqUrl.path ?: ""
+                        if (!path.contains(".")) {
+                            val cleanPath = path.trim('/').ifEmpty { "index" }
+                            val htmlCandidate = "$cleanPath.html"
+                            try {
+                                val stream = context.assets.open(htmlCandidate)
+                                return WebResourceResponse("text/html", "UTF-8", stream)
+                            } catch (_: Exception) {
+                                try {
+                                    val fallbackStream = context.assets.open("index.html")
+                                    return WebResourceResponse("text/html", "UTF-8", fallbackStream)
+                                } catch (_: Exception) {}
+                            }
+                        }
+                        return null
                     }
 
                     override fun shouldOverrideUrlLoading(
