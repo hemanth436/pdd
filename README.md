@@ -1,66 +1,70 @@
-# SkillSwap Platform (Web & Mobile APK)
+# 🌐 SkillSwap Exchange Web Application
 
-SkillSwap is a full-stack platform for peer-to-peer skill exchange and mentorship available on both Web and Mobile Android.
-
-## 📱 Mobile App (Android APK)
-
-Download and install the native Android APK directly:
-
-- 🚀 **[Download SkillSwap Android APK (SkillSwap.apk)](SkillSwap.apk)**
-
-### APK Installation Instructions:
-1. Download `SkillSwap.apk` onto your Android device or laptop.
-2. Open the APK file on your Android device.
-3. Allow "Install from unknown sources" if prompted by Android settings.
-4. Tap **Install** to open and launch SkillSwap!
+SkillSwap Exchange is a full-stack, decentralized peer-to-peer knowledge sharing and mentorship web application.
 
 ---
 
-## 🌐 Web Application Setup
+## ⚡ Quick Links & Localhost Access
 
-### Tech Stack
+- 💻 **Web Application Frontend**: **[http://localhost:3000](http://localhost:3000)**
+- 📱 **Mobile/Network Interface**: **[http://172.23.52.41:3000](http://172.23.52.41:3000)**
+- ⚙️ **Backend REST API Server**: **[http://localhost:5001](http://localhost:5001)**
+
+---
+
+## 🚀 Tech Stack
+
 - **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS, Lucide Icons, Socket.IO Client.
-- **Backend**: Node.js, Express, Socket.IO, Supabase / MongoDB.
-- **Android App**: Kotlin, Jetpack Compose, Retrofit.
+- **Backend**: Node.js, Express, Socket.IO, Supabase Client & PostgreSQL.
+- **Database & Auth**: Supabase PostgreSQL (`public.profiles`, `public.logins`, `public.skills`, `public.swaps`, `public.messages`).
 
-### Getting Started
+---
 
-#### Prerequisites
+## 🛠️ Installation & Execution Guide
+
+### Prerequisites
 - Node.js (v18 or higher recommended)
 - npm or yarn
 
-#### Installation & Setup
+### 1. Install Dependencies
 
-1. **Install Frontend Dependencies**:
-   ```bash
-   cd frontend
-   npm install
-   ```
+```bash
+# Install root dependencies
+npm install
 
-2. **Install Backend Dependencies**:
-   ```bash
-   cd backend
-   npm install
-   ```
+# Install frontend dependencies
+cd frontend && npm install && cd ..
 
-#### Running the Web Application
+# Install backend dependencies
+cd backend && npm install && cd ..
+```
 
-From the root directory:
+### 2. Run Web Application
 
-- **Run Frontend**:
+From the project root directory:
+
+```bash
+# Start both Frontend and Backend concurrently
+npm run dev
+```
+
+Or run services individually:
+
+- **Start Web Frontend** (Port 3000):
   ```bash
   npm run dev:frontend
   ```
-  The web frontend will be running at [http://localhost:3000](http://localhost:3000).
 
-- **Run Backend**:
+- **Start Backend API & Real-Time Socket.IO** (Port 5001):
   ```bash
   npm run dev:backend
   ```
-  The API backend server will be running at [http://localhost:5001](http://localhost:5001).
 
 ---
 
-## Database Setup
+## 🗄️ Database Setup (Supabase)
 
-The database tables and seed script can be set up in Supabase using `supabase_setup.sql`.
+To link your live Supabase project to the web application:
+
+1. Open your Supabase SQL Editor: **[https://supabase.com/dashboard/project/kxhqdsqqhdobxltefzsp/sql](https://supabase.com/dashboard/project/kxhqdsqqhdobxltefzsp/sql)**
+2. Copy and execute the contents of **[supabase_setup.sql](supabase_setup.sql)**.
