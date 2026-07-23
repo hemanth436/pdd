@@ -7,8 +7,8 @@
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
-  --card: rgba(255, 255, 255, 0.7);
-  --card-border: rgba(0, 0, 0, 0.06);
+  --card: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(0, 0, 0, 0.08);
   --primary: #4f46e5;
   --primary-gradient: linear-gradient(135deg, #4f46e5, #7c3aed);
   --secondary: #10b981;
@@ -19,13 +19,17 @@
 [data-theme="dark"] {
   --background: #0b0f19;
   --foreground: #f3f4f6;
-  --card: rgba(17, 25, 40, 0.65);
-  --card-border: rgba(255, 255, 255, 0.08);
+  --card: rgba(17, 25, 40, 0.75);
+  --card-border: rgba(255, 255, 255, 0.09);
   --primary: #6366f1;
   --primary-gradient: linear-gradient(135deg, #6366f1, #a855f7);
   --secondary: #10b981;
   --secondary-gradient: linear-gradient(135deg, #10b981, #059669);
   --accent: #818cf8;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -41,21 +45,45 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
 }
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(11, 15, 25, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
 /* Custom Glassmorphism Utility */
 .glass-panel {
   background: var(--card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--card-border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 20px 30px -10px rgba(99, 102, 241, 0.15);
 }
 
 /* Animations */
 @keyframes pulseGlow {
   0%, 100% {
     opacity: 0.3;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.6;
+    opacity: 0.65;
+    transform: scale(1.03);
   }
 }
 
@@ -67,8 +95,9 @@ h1, h2, h3, h4, h5, h6 {
   position: absolute;
   inset: 0;
   background: var(--primary-gradient);
-  filter: blur(20px);
+  filter: blur(35px);
   z-index: -1;
-  opacity: 0.4;
-  animation: pulseGlow 4s infinite ease-in-out;
+  opacity: 0.35;
+  animation: pulseGlow 5s infinite ease-in-out;
+  border-radius: 50%;
 }

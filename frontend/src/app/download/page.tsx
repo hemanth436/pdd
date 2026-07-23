@@ -72,14 +72,12 @@ export default function DownloadAppPage() {
               <Download className="w-5 h-5" /> Install App on Mobile
             </button>
 
-            <a
-              href="https://ybimb-2401-4900-915b-3ea4-dd17-a262-d0c6-255c.run.pinggy-free.link"
-              target="_blank"
-              rel="noreferrer"
+            <Link
+              href="/explore"
               className="w-full py-3.5 border border-slate-300 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-gray-200 font-bold rounded-2xl flex items-center justify-center gap-2 text-sm transition-colors block"
             >
-              <ExternalLink className="w-4 h-4" /> Open Web App Link
-            </a>
+              <ExternalLink className="w-4 h-4" /> Explore Web App Marketplace
+            </Link>
           </div>
         )}
 

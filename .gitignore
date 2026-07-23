@@ -1,22 +1,25 @@
-# Build directories
-.gradle/
-build/
-app/build/
-*.iml
-.idea/
-.vscode/
-
-# APK Binaries
-*.apk
-SkillSwap.apk
-
-# Node & Next.js
+# Dependencies
 node_modules/
 frontend/node_modules/
-frontend/.next/
 backend/node_modules/
 
-# OS files
+# Next.js build output
+frontend/.next/
+frontend/out/
+
+# Environment variables
+.env
+.env.local
+backend/.env
+frontend/.env.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs & System files
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
-local.properties

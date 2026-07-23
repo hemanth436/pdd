@@ -147,6 +147,6 @@ io.on('connection', (socket) => {
 
 // Listen
 const PORT = process.env.PORT || 5001;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend server successfully listening on port: ${PORT}`);
 });
