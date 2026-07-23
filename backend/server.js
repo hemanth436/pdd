@@ -56,6 +56,31 @@ app.post('/api/feedback', async (req, res) => {
 });
 
 // Default Root status check
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>SkillSwap Platform Backend API</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0f19; color: #fff; text-align: center; padding: 50px 20px; }
+          .card { background: #0d121f; border: 1px solid #1e293b; max-width: 500px; margin: 0 auto; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+          h1 { color: #6366f1; margin-bottom: 10px; }
+          p { color: #94a3b8; font-size: 14px; }
+          .btn { display: inline-block; margin-top: 20px; padding: 12px 24px; background: linear-gradient(90deg, #6366f1, #8b5cf6); color: white; text-decoration: none; font-weight: bold; border-radius: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>⚡ SkillSwap API Server</h1>
+          <p>The Express REST API and Socket.IO real-time backend is online and running successfully on port 5001.</p>
+          <a class="btn" href="http://${req.hostname}:3000">Open Web Application UI (Port 3000)</a>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
 app.get('/api/status', (req, res) => {
   res.json({
     status: 'healthy',
