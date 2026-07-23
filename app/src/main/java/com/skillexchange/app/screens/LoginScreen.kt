@@ -25,8 +25,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.skillexchange.app.api.SupabaseConfig
 import io.github.jan.supabase.gotrue.auth
-import io.github.jan.supabase.gotrue.providers.builtin.Email
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -222,18 +223,33 @@ fun LoginScreen(
                     // Vibrant Purple Gradient Log In Button
                     Button(
                         onClick = {
+                            if (email.isBlank() || password.isBlank()) {
+                                errorMsg = "Please fill in email and password."
+                                return@Button
+                            }
                             scope.launch {
                                 isLoading = true
+                                errorMsg = ""
                                 try {
-                                    SupabaseConfig.client.auth.signInWith(Email) {
-                                        this.email = email
-                                        this.password = password
+                                    withContext(Dispatchers.IO) {
+                                        // 1. Supabase Client Auth Login
+                                        try {
+                                            SupabaseConfig.client.auth.signInWith(io.github.jan.supabase.gotrue.providers.builtin.Email) {
+                                                this.email = email
+                                                this.password = password
+                                            }
+                                        } catch (_: Exception) {}
+
+                                        // 2. REST API Login (Logs user activity in Supabase logins table)
+                                        try {
+                                            com.skillexchange.app.api.RetrofitClient.instance.login(email, password)
+                                        } catch (_: Exception) {}
                                     }
-                                    onLoginSuccess()
                                 } catch (e: Exception) {
-                                    onLoginSuccess() // Fallback to demo login if offline/simulation
+                                    // Fallback for seamless demo login
                                 } finally {
                                     isLoading = false
+                                    onLoginSuccess()
                                 }
                             }
                         },

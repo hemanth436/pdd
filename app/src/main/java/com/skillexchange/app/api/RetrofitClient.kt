@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 
 object RetrofitClient {
-    private const val BASE_URL = "http://10.0.2.2:5001/" // 10.0.2.2 points to host machine from Android Emulator
+    private const val BASE_URL = "http://172.23.52.41:5001/"
 
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
