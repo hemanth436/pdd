@@ -28,6 +28,9 @@ import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import kotlinx.coroutines.launch
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @Composable
 fun LoginScreen(
     navController: NavController,
@@ -50,6 +53,7 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(darkBg)
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -138,7 +142,7 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        placeholder = { Text("name@example.com or username", color = Color(0xFF64748B), fontSize = 13.sp) },
+                        placeholder = { Text("Email or Username", color = Color(0xFF64748B), fontSize = 13.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF64748B)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,

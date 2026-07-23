@@ -145,7 +145,7 @@ fun RegisterScreen(
                     OutlinedTextField(
                         value = fullName,
                         onValueChange = { fullName = it },
-                        placeholder = { Text("e.g. Samantha Miller", color = Color(0xFF64748B), fontSize = 13.sp) },
+                        placeholder = { Text("e.g. Samantha Miller", color = Color(0xFF64748B), fontSize = 13.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF64748B)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -175,7 +175,7 @@ fun RegisterScreen(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        placeholder = { Text("samantha@gmail.com", color = Color(0xFF64748B), fontSize = 13.sp) },
+                        placeholder = { Text("samantha@gmail.com", color = Color(0xFF64748B), fontSize = 13.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF64748B)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth(),
@@ -206,7 +206,7 @@ fun RegisterScreen(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        placeholder = { Text("••••••••", color = Color(0xFF64748B), fontSize = 13.sp) },
+                        placeholder = { Text("••••••••", color = Color(0xFF64748B), fontSize = 13.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF64748B)) },
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
