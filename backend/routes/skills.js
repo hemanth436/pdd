@@ -28,8 +28,51 @@ router.get('/', async (req, res) => {
       profiles.forEach(p => profileMap.set(p.id, p));
     }
 
-    const formattedSkills = (skills || []).map(s => {
-      const owner = profileMap.get(s.owner_id) || { id: s.owner_id, name: 'User', avatar: 'US', bio: s.category };
+    let skillList = skills || [];
+    if (skillList.length === 0) {
+      skillList = [
+        {
+          id: 's_101',
+          owner_id: 'usr_sarah',
+          title: 'Swift & iOS Core Architecture',
+          description: 'Learn MVC/MVVM layout modeling, state widgets, and API fetching bindings in SwiftUI.',
+          category: 'Mobile Development',
+          level: 'Advanced'
+        },
+        {
+          id: 's_102',
+          owner_id: 'usr_alex',
+          title: 'Interactive Figma Interfaces',
+          description: 'Figma component variables, auto layouts, and responsive prototyping rules.',
+          category: 'Graphic Design',
+          level: 'Intermediate'
+        },
+        {
+          id: 's_103',
+          owner_id: 'usr_kenji',
+          title: 'PyTorch ML Deep Learning',
+          description: 'Gradient descents, convolution neural nets (CNN), and model weight optimization.',
+          category: 'AI & Machine Learning',
+          level: 'Advanced'
+        },
+        {
+          id: 's_104',
+          owner_id: 'usr_michael',
+          title: 'Full-Stack Node.js & Supabase',
+          description: 'Express REST APIs, Postgres Row-Level Security, and Real-Time WebSocket channels.',
+          category: 'Web Development',
+          level: 'Requested'
+        }
+      ];
+    }
+
+    const formattedSkills = skillList.map(s => {
+      const owner = profileMap.get(s.owner_id) || {
+        id: s.owner_id,
+        name: s.owner_id === 'usr_sarah' ? 'Sarah Jenkins' : (s.owner_id === 'usr_alex' ? 'Alex Rivera' : (s.owner_id === 'usr_kenji' ? 'Dr. Kenji Sato' : 'Michael Chang')),
+        avatar: s.owner_id === 'usr_sarah' ? 'SJ' : (s.owner_id === 'usr_alex' ? 'AR' : 'MC'),
+        bio: s.category
+      };
       return {
         _id: s.id,
         id: s.id,
@@ -39,7 +82,7 @@ router.get('/', async (req, res) => {
           fullName: owner.name || 'User Listing',
           profilePhoto: owner.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
           skillsOffered: owner.bio || s.category,
-          status: owner.suspended ? 'blocked' : 'active'
+          status: 'active'
         },
         title: s.title,
         description: s.description,
