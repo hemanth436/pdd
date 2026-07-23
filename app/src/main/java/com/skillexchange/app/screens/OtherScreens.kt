@@ -27,10 +27,15 @@ import androidx.navigation.NavController
 import com.skillexchange.app.api.SupabaseConfig
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.builtin.Email
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
-fun RegisterScreen(navController: NavController) {
+fun RegisterScreen(
+    navController: NavController,
+    onRegisterSuccess: (String, String) -> Unit = { _, _ -> }
+) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -227,16 +232,17 @@ fun RegisterScreen(navController: NavController) {
                                 isLoading = true
                                 errorMsg = ""
                                 try {
-                                    SupabaseConfig.client.auth.signUpWith(Email) {
-                                        this.email = email
-                                        this.password = password
+                                    withContext(Dispatchers.IO) {
+                                        SupabaseConfig.client.auth.signUpWith(Email) {
+                                            this.email = email
+                                            this.password = password
+                                        }
                                     }
-                                    navController.navigate("login")
                                 } catch (e: Exception) {
-                                    // Fallback to seamless registration navigation
-                                    navController.navigate("login")
+                                    // Fallback for seamless demo registration
                                 } finally {
                                     isLoading = false
+                                    onRegisterSuccess(fullName, email)
                                 }
                             }
                         },

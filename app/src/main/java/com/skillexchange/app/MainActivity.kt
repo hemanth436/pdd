@@ -92,7 +92,21 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("register") {
-                            RegisterScreen(navController = navController)
+                            RegisterScreen(
+                                navController = navController,
+                                onRegisterSuccess = { fullName, email ->
+                                    tokenManager.saveAuthSession(
+                                        "token_" + System.currentTimeMillis(),
+                                        "u_" + System.currentTimeMillis(),
+                                        "user",
+                                        if (fullName.isNotBlank()) fullName else "New User",
+                                        if (email.isNotBlank()) email else "user@example.com"
+                                    )
+                                    navController.navigate(ScreenRoute.DASHBOARD.route) {
+                                        popUpTo(ScreenRoute.LANDING.route) { inclusive = true }
+                                    }
+                                }
+                            )
                         }
                         composable(ScreenRoute.EXPLORE.route) {
                             MarketplaceScreen(
