@@ -36,9 +36,9 @@ val AccentRose = Color(0xFFEF4444)
 
 enum class ScreenRoute(val route: String, val title: String, val icon: ImageVector) {
     LANDING("landing", "Home", Icons.Default.Home),
-    EXPLORE("explore", "Marketplace", Icons.Default.Search),
-    DASHBOARD("dashboard", "Dashboard", Icons.Default.Dashboard),
-    SKILLS("skills", "My Skills", Icons.Default.Folder),
+    EXPLORE("explore", "Explore", Icons.Default.Search),
+    DASHBOARD("dashboard", "Overview", Icons.Default.Dashboard),
+    SKILLS("skills", "Skills", Icons.Default.Folder),
     REQUESTS("requests", "Requests", Icons.Default.CompareArrows),
     CHAT("chat", "Messages", Icons.Default.Chat),
     SESSIONS("sessions", "Sessions", Icons.Default.Videocam),
@@ -128,17 +128,22 @@ fun SkillSwapBottomNavigation(
             NavigationBarItem(
                 selected = selected,
                 onClick = { onNavigate(screen.route) },
+                alwaysShowLabel = true,
                 icon = {
                     Icon(
                         imageVector = screen.icon,
                         contentDescription = screen.title,
-                        tint = if (selected) PrimaryIndigo else Color(0xFF94A3B8)
+                        tint = if (selected) PrimaryIndigo else Color(0xFF94A3B8),
+                        modifier = Modifier.size(20.dp)
                     )
                 },
                 label = {
                     Text(
                         text = screen.title,
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                         color = if (selected) PrimaryIndigo else Color(0xFF94A3B8)
                     )

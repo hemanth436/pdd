@@ -13,7 +13,7 @@ class SkillRepository {
     private val fallbackSkills = mutableListOf(
         SkillDto(
             id = "s101",
-            userId = "u1",
+            userId = "u_current",
             title = "Swift & iOS Core Architecture",
             description = "Learn MVC/MVVM layout modeling, state widgets, and API fetching bindings in SwiftUI.",
             category = "Mobile Development",
@@ -23,7 +23,7 @@ class SkillRepository {
         ),
         SkillDto(
             id = "s102",
-            userId = "u2",
+            userId = "u_current",
             title = "Interactive Figma Interfaces",
             description = "Figma component variables, auto layouts, and responsive prototyping rules.",
             category = "Graphic Design",
@@ -78,7 +78,7 @@ class SkillRepository {
                 list = list.filter { it.title.lowercase().contains(query) || it.description.lowercase().contains(query) }
             }
             if (!userId.isNullOrBlank()) {
-                list = list.filter { it.userId == userId }
+                list = list.filter { it.userId == userId || it.userId == "u_current" }
             }
             list
         }

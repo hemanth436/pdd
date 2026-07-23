@@ -31,6 +31,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @Composable
 fun RegisterScreen(
     navController: NavController,
@@ -53,6 +56,7 @@ fun RegisterScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(darkBg)
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
