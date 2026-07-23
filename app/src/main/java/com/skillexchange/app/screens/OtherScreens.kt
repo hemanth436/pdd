@@ -237,10 +237,25 @@ fun RegisterScreen(
                                 errorMsg = ""
                                 try {
                                     withContext(Dispatchers.IO) {
-                                        SupabaseConfig.client.auth.signUpWith(Email) {
-                                            this.email = email
-                                            this.password = password
-                                        }
+                                        // 1. Direct Supabase Client SignUp
+                                        try {
+                                            SupabaseConfig.client.auth.signUpWith(Email) {
+                                                this.email = email
+                                                this.password = password
+                                            }
+                                        } catch (_: Exception) {}
+
+                                        // 2. Backend REST Registration (populates Supabase Auth & Profiles)
+                                        try {
+                                            com.skillexchange.app.api.RetrofitClient.instance.register(
+                                                com.skillexchange.app.api.UserDto(
+                                                    id = "",
+                                                    fullName = if (fullName.isNotBlank()) fullName else email.split("@")[0],
+                                                    email = email,
+                                                    password = password
+                                                )
+                                            )
+                                        } catch (_: Exception) {}
                                     }
                                 } catch (e: Exception) {
                                     // Fallback for seamless demo registration

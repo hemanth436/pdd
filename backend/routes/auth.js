@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const { db, supabase } = require('../config/supabase');
+const { db, supabase, supabaseAdmin } = require('../config/supabase');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'skillswapexchangesecretkey';
 
@@ -41,7 +41,7 @@ const recordLoginEvent = async (userId, email, ipAddress, userAgent) => {
   }
 };
 
-// 1. Register User via Supabase
+// 1. Register User directly into Supabase Auth & Profiles
 router.post('/register', async (req, res) => {
   try {
     const { fullName, email, password, role, skillsOffered, skillsNeeded } = req.body;
@@ -52,21 +52,38 @@ router.post('/register', async (req, res) => {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Check if profile exists
+    // Check if profile exists in database
     const { data: existingProfile } = await db.from('profiles').select('*').eq('email', cleanEmail).single();
     if (existingProfile) {
       return res.status(409).json({ message: 'Email already registered' });
     }
 
-    // Register via Supabase Auth
+    // Register user in Supabase Auth (Authentication -> Users table)
     let authUserId = null;
     try {
-      const { data: authData } = await supabase.auth.signUp({
+      // 1st Preference: Create confirmed user via Supabase Admin API
+      const { data: adminUserData, error: adminErr } = await supabaseAdmin.auth.admin.createUser({
         email: cleanEmail,
-        password: password || 'password123'
+        password: password || 'password123',
+        email_confirm: true,
+        user_metadata: { full_name: fullName || cleanEmail.split('@')[0] }
       });
-      if (authData?.user?.id) authUserId = authData.user.id;
+      if (adminUserData?.user?.id) {
+        authUserId = adminUserData.user.id;
+      }
     } catch (_e) {}
+
+    if (!authUserId) {
+      try {
+        // Fallback: Standard Supabase SignUp
+        const { data: authData } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password: password || 'password123',
+          options: { data: { full_name: fullName || cleanEmail.split('@')[0] } }
+        });
+        if (authData?.user?.id) authUserId = authData.user.id;
+      } catch (_e) {}
+    }
 
     const userId = authUserId || 'usr_' + Date.now();
     const avatarText = fullName ? fullName.split(' ').map(n => n[0]).join('').toUpperCase() : cleanEmail.substring(0, 2).toUpperCase();
@@ -127,9 +144,19 @@ router.post('/login', async (req, res) => {
       profile.role = 'admin';
     }
 
-    // Auto-create profile in Supabase if missing
+    // Auto-create profile in Supabase Auth & Database if missing
     if (!profile) {
-      const newUserId = 'usr_' + Date.now();
+      let newUserId = 'usr_' + Date.now();
+      try {
+        const { data: adminUserData } = await supabaseAdmin.auth.admin.createUser({
+          email: targetEmail,
+          password: password || 'password123',
+          email_confirm: true,
+          user_metadata: { full_name: cleanInput }
+        });
+        if (adminUserData?.user?.id) newUserId = adminUserData.user.id;
+      } catch (_e) {}
+
       const formattedName = cleanInput.charAt(0).toUpperCase() + cleanInput.slice(1);
       
       const { data: createdProfile } = await db

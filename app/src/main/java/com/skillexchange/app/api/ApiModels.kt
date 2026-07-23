@@ -13,6 +13,7 @@ data class UserDto(
     @SerializedName("username") val username: String = "user",
     @SerializedName("full_name") val fullName: String = "User",
     @SerializedName("email") val email: String = "user@example.com",
+    @SerializedName("password") val password: String? = null,
     @SerializedName("role") val role: String = "user",
     @SerializedName("mobile_number") val mobileNumber: String? = null,
     @SerializedName("bio") val bio: String? = null,
