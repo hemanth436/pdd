@@ -1,16 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { db } = require('../config/supabase');
+const { db, supabaseAdmin } = require('../config/supabase');
 
-// 1. Get Administrative Dashboard Stats from Supabase
+// 1. Get Administrative Dashboard Stats & User Activity directly from Supabase
 router.get('/stats', async (req, res) => {
   try {
     const { data: profiles } = await db.from('profiles').select('*');
+    const { data: logins } = await db.from('logins').select('*');
     const { data: skills } = await db.from('skills').select('*');
     const { data: swaps } = await db.from('swaps').select('*');
     const { data: reports } = await db.from('reports').select('*');
 
     const totalUsers = (profiles || []).length;
+    const totalLogins = (logins || []).length;
     const totalSkills = (skills || []).length;
     const totalRequests = (swaps || []).length;
     const activeUsers = (profiles || []).filter(p => !p.suspended).length;
@@ -20,10 +22,22 @@ router.get('/stats', async (req, res) => {
       id: p.id,
       fullName: p.name || 'User',
       email: p.email,
-      username: p.email.split('@')[0],
-      role: p.role,
+      username: p.email ? p.email.split('@')[0] : 'user',
+      role: p.role || 'both',
       status: p.suspended ? 'blocked' : 'active',
-      createdAt: p.created_at
+      createdAt: p.created_at || new Date().toISOString(),
+      lastLogin: p.last_login || p.created_at
+    }));
+
+    const formattedLogins = (logins || []).map(l => ({
+      _id: l.id,
+      id: l.id,
+      userId: l.user_id,
+      email: l.email,
+      loginType: l.login_type || 'password',
+      timestamp: l.login_timestamp || l.created_at,
+      ipAddress: l.ip_address || '127.0.0.1',
+      userAgent: l.user_agent || 'SkillSwap-Client'
     }));
 
     const formattedFeedback = (reports || []).map(r => ({
@@ -37,11 +51,13 @@ router.get('/stats', async (req, res) => {
     res.json({
       stats: {
         total_users: totalUsers,
+        total_logins: totalLogins,
         total_skills: totalSkills,
         total_requests: totalRequests,
         active_users: activeUsers
       },
       users: formattedUsers,
+      logins: formattedLogins,
       feedback: formattedFeedback
     });
   } catch (error) {

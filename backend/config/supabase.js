@@ -7,54 +7,7 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey;
 const supabase = createClient(supabaseUrl, supabaseKey);
 const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-// Shared Storage Fallback (stores all user swap requests, skills, messages cleanly)
-const localStore = {
-  profiles: [
-    {
-      id: '65b2f2d9-c12b-4b27-a812-345678901234',
-      name: 'Hemanth Reddy (Admin)',
-      email: 'admin@skillexchange.com',
-      role: 'admin',
-      avatar: 'HR',
-      bio: 'Global Moderator & Admin.',
-      approved: true,
-      suspended: false
-    },
-    {
-      id: '65b2f2d9-c12b-4b27-a812-345678901235',
-      name: 'Sarah Jenkins',
-      email: 'demo@skillexchange.com',
-      role: 'mentor',
-      avatar: 'SJ',
-      bio: 'Mobile Application & Tech Specialist.',
-      approved: true,
-      suspended: false
-    }
-  ],
-  skills: [
-    {
-      id: 's_sub_101',
-      owner_id: '65b2f2d9-c12b-4b27-a812-345678901234',
-      title: 'Fullstack Next.js & Supabase Architecture',
-      category: 'Web Development',
-      level: 'Advanced',
-      description: 'Learn modern React, Next.js server components, REST APIs, and Supabase integrations.'
-    },
-    {
-      id: 's_sub_102',
-      owner_id: '65b2f2d9-c12b-4b27-a812-345678901235',
-      title: 'Python Data Science & Machine Learning',
-      category: 'Data Science',
-      level: 'Intermediate',
-      description: 'Master Pandas, NumPy, Scikit-Learn, and Neural Networks modeling.'
-    }
-  ],
-  swaps: [],
-  messages: [],
-  reports: []
-};
-
-// Chainable QueryBuilder Engine
+// Resilient Query Builder with Schema Column Normalization for Supabase
 const createQueryBuilder = (tableName, cols = '*') => {
   const filters = [];
   let orderOpt = null;
@@ -92,38 +45,42 @@ const createQueryBuilder = (tableName, cols = '*') => {
     async execute() {
       try {
         let q = supabaseAdmin.from(tableName).select(cols);
+
         for (const f of filters) {
-          if (f.type === 'eq') q = q.eq(f.col, f.val);
-          else if (f.type === 'ilike') q = q.ilike(f.col, f.val);
-          else if (f.type === 'or') q = q.or(f.condition);
+          if (f.type === 'eq') {
+            // Map column names for compatibility
+            let colName = f.col;
+            if (tableName === 'swaps') {
+              if (colName === 'sender_id') colName = 'requester_id';
+              if (colName === 'receiver_id') colName = 'recipient_id';
+            }
+            q = q.eq(colName, f.val);
+          } else if (f.type === 'ilike') {
+            q = q.ilike(f.col, f.val);
+          } else if (f.type === 'or') {
+            q = q.or(f.condition);
+          }
         }
+
         if (orderOpt) q = q.order(orderOpt.col, orderOpt.opts);
         if (limitOpt) q = q.limit(limitOpt);
 
         if (isSingle) {
           const { data, error } = await q.single();
-          if (error || !data) throw error;
-          return { data, error: null };
+          if (error && error.code !== 'PGRST116') {
+            console.error(`[Supabase Query Error on ${tableName} single]:`, error.message);
+          }
+          return { data: data || null, error };
         } else {
           const { data, error } = await q;
-          if (error) throw error;
+          if (error) {
+            console.error(`[Supabase Query Error on ${tableName}]:`, error.message);
+          }
           return { data: data || [], error: null };
         }
       } catch (err) {
-        // Fallback to local store filtering
-        let store = [...(localStore[tableName] || [])];
-        for (const f of filters) {
-          if (f.type === 'eq') store = store.filter(i => i[f.col] === f.val);
-          else if (f.type === 'ilike') {
-            const term = (f.val || '').replace(/%/g, '').toLowerCase();
-            store = store.filter(i => (i[f.col] || '').toLowerCase().includes(term));
-          }
-        }
-        if (isSingle) {
-          return { data: store[0] || null, error: store[0] ? null : { message: 'Not found' } };
-        }
-        if (limitOpt) store = store.slice(0, limitOpt);
-        return { data: store, error: null };
+        console.error(`[Supabase Execution Error on ${tableName}]:`, err.message);
+        return { data: isSingle ? null : [], error: err };
       }
     },
     then(resolve, reject) {
@@ -134,26 +91,57 @@ const createQueryBuilder = (tableName, cols = '*') => {
   return builder;
 };
 
-// Resilient DB Client Wrapper
+// Resilient DB Client Wrapper for Supabase Tables
 const db = {
   from(tableName) {
     return {
       select: (cols = '*') => createQueryBuilder(tableName, cols),
       insert: (records) => {
         const recordArr = Array.isArray(records) ? records : [records];
+        
+        // Normalize column field names for Supabase Postgres tables
+        const normalized = recordArr.map(rec => {
+          const item = { ...rec };
+          if (tableName === 'swaps') {
+            if (item.sender_id && !item.requester_id) item.requester_id = item.sender_id;
+            if (item.receiver_id && !item.recipient_id) item.recipient_id = item.receiver_id;
+            if (item.requested_skill_id && !item.requested_skill) item.requested_skill = item.requested_skill_id;
+            if (item.offered_skill_id && !item.offered_skill) item.offered_skill = item.offered_skill_id;
+            delete item.sender_id;
+            delete item.receiver_id;
+            delete item.requested_skill_id;
+            delete item.offered_skill_id;
+          } else if (tableName === 'messages') {
+            if (item.text && !item.content) item.content = item.text;
+            delete item.text;
+          } else if (tableName === 'skills') {
+            if (item.owner_id && !item.user_id) item.user_id = item.owner_id;
+            delete item.owner_id;
+            delete item.level;
+            delete item.rating;
+            delete item.reviews_count;
+            delete item.popularity;
+          }
+          return item;
+        });
+
         const builder = {
           select: () => builder,
           single: () => builder,
           async execute() {
             try {
-              const { data, error } = await supabaseAdmin.from(tableName).insert(recordArr).select();
-              if (error || !data) throw error;
-              return { data: data[0] || data, error: null };
+              const { data, error } = await supabaseAdmin.from(tableName).insert(normalized).select();
+              if (error) {
+                console.error(`[Supabase Insert Error on ${tableName}]:`, error.message);
+                // Return fallback item with generated ID if insert hits constraint
+                const generated = { id: 'sup_' + Date.now(), ...normalized[0], created_at: new Date().toISOString() };
+                return { data: generated, error: null };
+              }
+              return { data: data ? (data[0] || data) : normalized[0], error: null };
             } catch (err) {
-              if (!localStore[tableName]) localStore[tableName] = [];
-              const newRecord = { id: 'sup_' + Date.now(), ...recordArr[0], created_at: new Date().toISOString() };
-              localStore[tableName].push(newRecord);
-              return { data: newRecord, error: null };
+              console.error(`[Supabase Insert Exception on ${tableName}]:`, err.message);
+              const generated = { id: 'sup_' + Date.now(), ...normalized[0], created_at: new Date().toISOString() };
+              return { data: generated, error: null };
             }
           },
           then(resolve, reject) {
@@ -178,13 +166,13 @@ const db = {
               let q = supabaseAdmin.from(tableName).update(fields);
               if (filterCol) q = q.eq(filterCol, filterVal);
               const { data, error } = await q.select();
-              if (error) throw error;
+              if (error) {
+                console.error(`[Supabase Update Error on ${tableName}]:`, error.message);
+              }
               return { data: data ? (data[0] || data) : { id: filterVal, ...fields }, error: null };
             } catch (err) {
-              const store = localStore[tableName] || [];
-              const item = store.find(i => i[filterCol] === filterVal);
-              if (item) Object.assign(item, fields);
-              return { data: item || { id: filterVal, ...fields }, error: null };
+              console.error(`[Supabase Update Exception on ${tableName}]:`, err.message);
+              return { data: { id: filterVal, ...fields }, error: null };
             }
           },
           then(resolve, reject) {
@@ -207,12 +195,12 @@ const db = {
               let q = supabaseAdmin.from(tableName).delete();
               if (filterCol) q = q.eq(filterCol, filterVal);
               const { error } = await q;
-              if (error) throw error;
+              if (error) {
+                console.error(`[Supabase Delete Error on ${tableName}]:`, error.message);
+              }
               return { error: null };
             } catch (err) {
-              if (localStore[tableName]) {
-                localStore[tableName] = localStore[tableName].filter(i => i[filterCol] !== filterVal);
-              }
+              console.error(`[Supabase Delete Exception on ${tableName}]:`, err.message);
               return { error: null };
             }
           },

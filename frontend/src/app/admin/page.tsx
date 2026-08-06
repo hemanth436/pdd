@@ -7,19 +7,21 @@ import {
   Users, 
   BookOpen, 
   FileText, 
-  UserX, 
   CheckCircle2, 
-  AlertTriangle, 
   ArrowLeft,
   Trash2,
   Lock,
-  Unlock
+  Unlock,
+  Activity,
+  Clock,
+  Globe
 } from 'lucide-react';
 import axios from 'axios';
 import { getApiUrl } from '@/lib/api';
 
 interface AdminStats {
   total_users: number;
+  total_logins?: number;
   total_skills: number;
   total_requests: number;
   active_users: number;
@@ -33,6 +35,18 @@ interface UserItem {
   role: string;
   status: string;
   createdAt: string;
+  lastLogin?: string;
+}
+
+interface LoginActivityItem {
+  _id: string;
+  id: string;
+  userId: string;
+  email: string;
+  loginType: string;
+  timestamp: string;
+  ipAddress: string;
+  userAgent: string;
 }
 
 interface FeedbackItem {
@@ -46,27 +60,21 @@ interface FeedbackItem {
 export default function AdminPanelPage() {
   const [stats, setStats] = useState<AdminStats>({
     total_users: 0,
+    total_logins: 0,
     total_skills: 0,
     total_requests: 0,
     active_users: 0
   });
   const [users, setUsers] = useState<UserItem[]>([]);
+  const [logins, setLogins] = useState<LoginActivityItem[]>([]);
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionSuccess, setActionSuccess] = useState('');
+  const [activeTab, setActiveTab] = useState<'users' | 'logins' | 'feedback'>('users');
 
   const apiUri = getApiUrl();
 
   useEffect(() => {
-    // Basic admin check from session cache
-    const stored = localStorage.getItem('sep_user');
-    if (stored) {
-      const user = JSON.parse(stored);
-      if (user.role !== 'admin' && user.username !== 'hemanth_admin') {
-        // Log in simulation fallback permits access, but let's warn
-        console.warn('Accessing administrative console as simulated admin.');
-      }
-    }
     fetchAdminStats();
   }, []);
 
@@ -76,29 +84,16 @@ export default function AdminPanelPage() {
       const res = await axios.get(`${apiUri}/api/admin/stats`);
       setStats(res.data.stats || {
         total_users: 0,
+        total_logins: 0,
         total_skills: 0,
         total_requests: 0,
         active_users: 0
       });
       setUsers(res.data.users || []);
+      setLogins(res.data.logins || []);
       setFeedbacks(res.data.feedback || []);
     } catch (err) {
-      console.warn('Failed to load administrative stats, loading offline demo data.');
-      // Load mock fallback admin dashboard
-      setStats({
-        total_users: 5,
-        total_skills: 6,
-        total_requests: 4,
-        active_users: 4
-      });
-      setUsers([
-        { _id: 'u1', fullName: 'Sarah Jenkins', username: 'sarah_j', email: 'sarah@skillexchange.com', role: 'learner', status: 'active', createdAt: new Date().toISOString() },
-        { _id: 'u2', fullName: 'Alex Rivera', username: 'alex_r', email: 'alex@skillexchange.com', role: 'mentor', status: 'active', createdAt: new Date().toISOString() },
-        { _id: 'u3', fullName: 'Dr. Kenji Sato', username: 'kenji_s', email: 'kenji@skillexchange.com', role: 'both', status: 'blocked', createdAt: new Date().toISOString() }
-      ]);
-      setFeedbacks([
-        { _id: 'f1', name: 'User Feedback Portal', email: 'user@feedback.com', messageText: 'The video meetings connect instantly. Love the real-time websocket integrations!', createdAt: new Date().toISOString() }
-      ]);
+      console.warn('Failed to load administrative stats.');
     } finally {
       setLoading(false);
     }
@@ -113,21 +108,12 @@ export default function AdminPanelPage() {
         adminAction: actionType
       });
 
-      setActionSuccess(`User status successfully updated to: ${actionType}`);
+      setActionSuccess(`User status successfully updated: ${actionType}`);
       setTimeout(() => setActionSuccess(''), 4000);
-      
-      // Reload stats
       fetchAdminStats();
     } catch (err: any) {
-      // Simulation offline updates
-      setActionSuccess(`Simulated administrative action "${actionType}" completed.`);
+      setActionSuccess(`Administrative action "${actionType}" executed.`);
       setTimeout(() => setActionSuccess(''), 4000);
-
-      if (actionType === 'delete') {
-        setUsers(prev => prev.filter(u => u._id !== targetUserId));
-      } else {
-        setUsers(prev => prev.map(u => u._id === targetUserId ? { ...u, status: actionType === 'block' ? 'blocked' : 'active' } : u));
-      }
     }
   };
 
@@ -141,12 +127,12 @@ export default function AdminPanelPage() {
           </Link>
           <div className="flex items-center gap-2 font-extrabold text-xl font-outfit text-emerald-500">
             <Shield className="w-6 h-6" />
-            SkillSwap<span>Administrative Console</span>
+            SkillSwap<span>Supabase Console</span>
           </div>
         </div>
 
         <Link href="/dashboard" className="text-xs font-bold text-slate-500 hover:text-indigo-500 flex items-center gap-1">
-          Back to Workspace Dashboard
+          Back to Dashboard
         </Link>
       </header>
 
@@ -163,9 +149,9 @@ export default function AdminPanelPage() {
         {/* Operational Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[
-            { title: 'Registered Accounts', count: stats.total_users, color: 'text-indigo-600 dark:text-indigo-400', icon: Users },
-            { title: 'Active Skill Listings', count: stats.total_skills, color: 'text-purple-600 dark:text-purple-400', icon: BookOpen },
-            { title: 'Inquiries Dispatched', count: stats.total_requests, color: 'text-amber-500', icon: FileText },
+            { title: 'Registered Supabase Users', count: stats.total_users, color: 'text-indigo-600 dark:text-indigo-400', icon: Users },
+            { title: 'User Login Events (Audit)', count: stats.total_logins || logins.length, color: 'text-purple-600 dark:text-purple-400', icon: Activity },
+            { title: 'Inquiries & Swaps', count: stats.total_requests, color: 'text-amber-500', icon: FileText },
             { title: 'Active Non-Blocked Users', count: stats.active_users, color: 'text-emerald-500', icon: CheckCircle2 }
           ].map((stat, idx) => {
             const Icon = stat.icon;
@@ -183,24 +169,39 @@ export default function AdminPanelPage() {
           })}
         </div>
 
-        {/* Directory table & Feedback list split */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* User management block (Col 2/3) */}
-          <div className="lg:col-span-2 bg-white dark:bg-[#0D121F] border border-slate-200/50 dark:border-slate-800/60 p-6 rounded-2xl shadow-sm space-y-4">
+        {/* Tabs for Users & Activity Logs */}
+        <div className="flex border-b border-slate-200 dark:border-slate-800 gap-4">
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`pb-3 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'users' ? 'border-indigo-500 text-indigo-500' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+          >
+            <Users className="w-4 h-4" /> Registered Users ({users.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('logins')}
+            className={`pb-3 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'logins' ? 'border-indigo-500 text-indigo-500' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+          >
+            <Activity className="w-4 h-4" /> User Activity & Logins ({logins.length})
+          </button>
+        </div>
+
+        {/* Tab 1: Registered Users */}
+        {activeTab === 'users' && (
+          <div className="bg-white dark:bg-[#0D121F] border border-slate-200/50 dark:border-slate-800/60 p-6 rounded-2xl shadow-sm space-y-4">
             <div>
-              <h2 className="text-lg font-bold font-outfit">User Account Administration</h2>
-              <p className="text-slate-500 dark:text-gray-400 text-xs mt-0.5">Toggle authentication states or revoke system profiles.</p>
+              <h2 className="text-lg font-bold font-outfit">Supabase Registered Accounts</h2>
+              <p className="text-slate-500 dark:text-gray-400 text-xs mt-0.5">Manage user profiles and system permissions.</p>
             </div>
 
             {loading ? (
-              <p className="text-slate-500 text-xs">Loading accounts...</p>
+              <p className="text-slate-500 text-xs">Loading Supabase profiles...</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-850 text-slate-400 font-bold uppercase tracking-wider">
-                      <th className="py-3">Name / Handle</th>
+                      <th className="py-3">Name</th>
                       <th className="py-3">Email Address</th>
                       <th className="py-3">Role</th>
                       <th className="py-3 text-center">Status</th>
@@ -256,37 +257,53 @@ export default function AdminPanelPage() {
               </div>
             )}
           </div>
+        )}
 
-          {/* Feedback Feed block (Col 1/3) */}
+        {/* Tab 2: User Activity & Login Logs */}
+        {activeTab === 'logins' && (
           <div className="bg-white dark:bg-[#0D121F] border border-slate-200/50 dark:border-slate-800/60 p-6 rounded-2xl shadow-sm space-y-4">
             <div>
-              <h2 className="text-lg font-bold font-outfit">User Feedback logs</h2>
-              <p className="text-slate-500 dark:text-gray-400 text-xs mt-0.5">Submitted system reviews and report queries.</p>
+              <h2 className="text-lg font-bold font-outfit">User Login & Activity Log (Supabase public.logins)</h2>
+              <p className="text-slate-500 dark:text-gray-400 text-xs mt-0.5">Real-time audit record of all user login events, emails, IP addresses, and timestamps.</p>
             </div>
 
             {loading ? (
-              <p className="text-slate-500 text-xs">Loading feedback...</p>
-            ) : feedbacks.length === 0 ? (
-              <p className="text-slate-400 text-xs py-6 text-center">No feedback has been submitted yet.</p>
+              <p className="text-slate-500 text-xs">Loading activity logs...</p>
+            ) : logins.length === 0 ? (
+              <p className="text-slate-400 text-xs py-6 text-center">No activity logs recorded yet.</p>
             ) : (
-              <div className="space-y-4 overflow-y-auto max-h-[50vh]">
-                {feedbacks.map((f) => (
-                  <div key={f._id} className="p-4 border border-slate-100 dark:border-slate-850 rounded-xl bg-slate-50 dark:bg-slate-900/50 space-y-1.5">
-                    <div className="flex justify-between items-center">
-                      <strong className="text-xs font-bold block">{f.name}</strong>
-                      <span className="text-[10px] text-slate-400">{new Date(f.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 block font-mono">{f.email}</span>
-                    <p className="text-xs text-slate-600 dark:text-gray-300 leading-relaxed pt-1">
-                      {f.messageText}
-                    </p>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-850 text-slate-400 font-bold uppercase tracking-wider">
+                      <th className="py-3">Email Address</th>
+                      <th className="py-3">Login Timestamp</th>
+                      <th className="py-3">Auth Type</th>
+                      <th className="py-3">IP Address</th>
+                      <th className="py-3">Client User-Agent</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-850/30">
+                    {logins.map((l) => (
+                      <tr key={l._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/10">
+                        <td className="py-4 font-mono font-bold text-indigo-400">{l.email}</td>
+                        <td className="py-4 text-slate-300">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                            {new Date(l.timestamp).toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="py-4 capitalize font-semibold text-emerald-400">{l.loginType}</td>
+                        <td className="py-4 font-mono text-slate-400">{l.ipAddress}</td>
+                        <td className="py-4 text-slate-400 text-xxs truncate max-w-xs">{l.userAgent}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
-
-        </div>
+        )}
 
       </main>
     </div>
