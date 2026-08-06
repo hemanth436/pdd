@@ -10,15 +10,13 @@ import {
   MicOff, 
   VideoOff, 
   PhoneOff, 
-  PhoneCall,
   Send, 
   MessageSquare, 
-  Sparkles,
-  Shield,
-  UserCheck
+  Shield
 } from 'lucide-react';
 import axios from 'axios';
 import io from 'socket.io-client';
+import { getApiUrl, getSocketUrl } from '@/lib/api';
 
 interface SessionItem {
   id: string;
@@ -52,8 +50,6 @@ export default function SessionsPage() {
   const [callMessages, setCallMessages] = useState<MessageItem[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [callStatus, setCallStatus] = useState('Connecting...');
-  const [isSimulatedCall, setIsSimulatedCall] = useState(false);
-  const [incomingCallRequest, setIncomingCallRequest] = useState<any>(null);
 
   // WebRTC & Socket Refs
   const socketRef = useRef<any>(null);
@@ -62,7 +58,7 @@ export default function SessionsPage() {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const apiUri = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5001' && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5000' ? process.env.NEXT_PUBLIC_API_URL : '';
+  const apiUri = getApiUrl();
 
   const iceServers = {
     iceServers: [
@@ -85,7 +81,7 @@ export default function SessionsPage() {
     if (!activeUser) return;
     const userId = activeUser.id || activeUser._id;
 
-    const socket = io(apiUri);
+    const socket = io(getSocketUrl());
     socketRef.current = socket;
 
     // Register active user online status
@@ -94,13 +90,6 @@ export default function SessionsPage() {
 
     socket.on('online_users_list', (list: string[]) => {
       setOnlineUserIds(list || []);
-    });
-
-    socket.on('incoming_call', (callData: any) => {
-      const { senderId, senderName, receiverId, sessionObj } = callData;
-      if (!receiverId || receiverId === userId || receiverId?.toString() === userId?.toString()) {
-        setIncomingCallRequest({ senderId, senderName, sessionObj });
-      }
     });
 
     socket.on('end_call_received', ({ targetUserId }: any) => {
@@ -126,7 +115,7 @@ export default function SessionsPage() {
       const received = res.data.received || [];
       const allRequests = [...sent, ...received];
 
-      // Filter strictly for accepted swap requests matching the Chat page
+      // Filter strictly for real accepted/completed swap requests
       const accepted = allRequests.filter(r => r.status === 'accepted');
       const completed = allRequests.filter(r => r.status === 'completed');
 
@@ -166,51 +155,13 @@ export default function SessionsPage() {
         };
       });
 
-      // Default peer contact fallback if user has no accepted requests yet
-      const defaultPeers: SessionItem[] = [
-        {
-          id: 'ses_peer_1',
-          partnerId: '65b2f2d9-c12b-4b27-a812-345678901234',
-          partnerName: 'Hemanth Reddy (Admin)',
-          topic: 'Fullstack Next.js & WebRTC Architecture',
-          role: 'Mentor',
-          date: 'TODAY',
-          time: 'Ready to Join',
-          status: 'upcoming'
-        },
-        {
-          id: 'ses_peer_2',
-          partnerId: '65b2f2d9-c12b-4b27-a812-345678901235',
-          partnerName: 'Sarah Jenkins',
-          topic: 'Mobile Development & UI Layouts',
-          role: 'Mentor',
-          date: 'TODAY',
-          time: 'Ready to Join',
-          status: 'upcoming'
-        }
-      ];
-
-      const combinedUpcoming = [...dbUpcomingSessions, ...defaultPeers];
-      const uniqueUpcoming = combinedUpcoming.filter((v, i, a) => a.findIndex(t => t.partnerId === v.partnerId) === i);
-
       setSessions([
-        ...uniqueUpcoming,
+        ...dbUpcomingSessions,
         ...dbCompletedSessions
       ]);
     } catch (err) {
-      console.warn('Failed to fetch sessions, loading default peer list.');
-      setSessions([
-        {
-          id: 'ses_peer_1',
-          partnerId: '65b2f2d9-c12b-4b27-a812-345678901234',
-          partnerName: 'Hemanth Reddy (Admin)',
-          topic: 'Fullstack Next.js & WebRTC Architecture',
-          role: 'Mentor',
-          date: 'TODAY',
-          time: 'Ready to Join',
-          status: 'upcoming'
-        }
-      ]);
+      console.warn('Failed to fetch sessions data.');
+      setSessions([]);
     }
   };
 
@@ -222,7 +173,6 @@ export default function SessionsPage() {
     setActiveCall(session);
     setCallStatus('Requesting camera/microphone access...');
     setCallMessages([]);
-    setIsSimulatedCall(false);
     
     const userId = activeUser.id || activeUser._id;
     const socket = socketRef.current;
@@ -284,38 +234,9 @@ export default function SessionsPage() {
       setCallStatus('Waiting for peer to connect...');
       initializePeerConnection(stream, session.partnerId);
     } catch (err: any) {
-      console.warn('Camera access denied or unavailable. Loading simulation.');
-      setIsSimulatedCall(true);
-      setCallStatus('Simulation Active');
-      
-      setTimeout(() => {
-        const mockGreet: MessageItem = {
-          senderId: session.partnerId,
-          receiverId: userId,
-          messageText: `Hey there! I'm ready. Let's look at the topic "${session.topic}". Can you hear me?`,
-          createdAt: new Date().toISOString()
-        };
-        setCallMessages(prev => [...prev, mockGreet]);
-      }, 3000);
+      console.warn('Camera/microphone hardware access unavailable.');
+      setCallStatus('Device Access Offline');
     }
-  };
-
-  const testIncomingCallRinging = () => {
-    if (!activeUser) return;
-    setIncomingCallRequest({
-      senderId: 'demo_caller_1',
-      senderName: 'Sarah Jenkins',
-      sessionObj: {
-        id: 'test_ses',
-        partnerId: 'demo_caller_1',
-        partnerName: 'Sarah Jenkins',
-        topic: 'SwiftUI & Mobile Application Architecture',
-        role: 'Mentor',
-        date: 'TODAY',
-        time: 'Now',
-        status: 'upcoming'
-      }
-    });
   };
 
   const initializePeerConnection = (stream: MediaStream, partnerId: string) => {
@@ -447,19 +368,12 @@ export default function SessionsPage() {
   const completedSessions = sessions.filter(s => s.status === 'completed');
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold font-outfit">My Sessions</h1>
           <p className="text-slate-500 dark:text-gray-400 text-sm mt-1">Join active video mentoring sessions and view completed peer logs.</p>
         </div>
-
-        <button 
-          onClick={testIncomingCallRinging}
-          className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 text-xs font-bold rounded-xl flex items-center gap-2 font-outfit"
-        >
-          <PhoneCall className="w-4 h-4 text-indigo-400 animate-bounce" /> Test Call Ringing
-        </button>
       </div>
 
       {/* Embedded Video Call Overlay */}
@@ -477,11 +391,6 @@ export default function SessionsPage() {
                 <span className="text-xxs text-slate-400 block">Connecting with {activeCall.partnerName}</span>
               </div>
               <div className="flex items-center gap-2">
-                {isSimulatedCall && (
-                  <span className="px-3 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xxs font-bold uppercase rounded-full flex items-center gap-1.5 animate-pulse">
-                    <Sparkles className="w-3.5 h-3.5" /> Simulation fallback active
-                  </span>
-                )}
                 <span className="px-3 py-1 bg-white/5 border border-white/10 text-xxs font-bold uppercase rounded-full text-slate-300">
                   {callStatus}
                 </span>
@@ -491,16 +400,7 @@ export default function SessionsPage() {
             <div className="flex-1 my-6 rounded-3xl overflow-hidden bg-slate-900/60 border border-white/5 flex items-center justify-center relative">
               
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-950/20 to-purple-950/30">
-                {isSimulatedCall ? (
-                  <div className="text-center space-y-4">
-                    <div className="relative w-28 h-28 mx-auto rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 border-2 border-indigo-400/50 flex items-center justify-center font-extrabold text-4xl shadow-xl shadow-indigo-500/10">
-                      {activeCall.partnerName.charAt(0)}
-                      <span className="absolute inset-0 rounded-full border-4 border-indigo-400 animate-ping opacity-25"></span>
-                    </div>
-                    <strong className="text-base font-outfit block">{activeCall.partnerName}</strong>
-                    <span className="text-xs text-indigo-300 block font-medium">Virtual instructor stream active</span>
-                  </div>
-                ) : remoteStream ? (
+                {remoteStream ? (
                   <video 
                     ref={remoteVideoRef} 
                     autoPlay 
@@ -519,22 +419,13 @@ export default function SessionsPage() {
 
               <div className="absolute bottom-4 right-4 w-40 h-28 sm:w-48 sm:h-36 rounded-2xl overflow-hidden bg-slate-900 border border-white/10 shadow-2xl flex items-center justify-center">
                 {cameraEnabled ? (
-                  isSimulatedCall ? (
-                    <div className="text-center p-2">
-                      <div className="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-xs mx-auto mb-1">
-                        {activeUser.fullName?.charAt(0) || 'U'}
-                      </div>
-                      <span className="text-[9px] text-slate-400 block font-bold">You (Simulated)</span>
-                    </div>
-                  ) : (
-                    <video 
-                      ref={localVideoRef} 
-                      autoPlay 
-                      muted 
-                      playsInline 
-                      className="w-full h-full object-cover"
-                    />
-                  )
+                  <video 
+                    ref={localVideoRef} 
+                    autoPlay 
+                    muted 
+                    playsInline 
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="text-slate-500 flex flex-col items-center gap-1">
                     <VideoOff className="w-5 h-5" />
@@ -639,9 +530,9 @@ export default function SessionsPage() {
             </h2>
 
             {upcomingSessions.length === 0 ? (
-              <div className="text-center py-10 space-y-3">
-                <p className="text-slate-400 text-xs">No active peer sessions scheduled.</p>
-                <p className="text-[10px] text-slate-500">Go to your Requests panel to accept matches and open calls.</p>
+              <div className="text-center py-12 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl space-y-3">
+                <p className="text-slate-400 text-xs font-semibold">No active peer sessions scheduled yet.</p>
+                <p className="text-[10px] text-slate-500">Go to your Requests panel to accept matches and initiate calls.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -655,7 +546,6 @@ export default function SessionsPage() {
                           <span className="px-2.5 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[9px] font-bold uppercase rounded-full tracking-wider">
                             {ses.role}
                           </span>
-                          {/* Real-time Online / Offline Status Badge */}
                           <span className={`px-2.5 py-0.5 border text-[9px] font-extrabold uppercase rounded-full tracking-wider flex items-center gap-1.5 ${isOnline ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border-slate-500/20'}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`}></span>
                             {isOnline ? '🟢 Online Now' : '⚪ Offline'}
@@ -710,52 +600,6 @@ export default function SessionsPage() {
         </div>
 
       </div>
-
-      {/* Ringing incoming call dialog modal */}
-      {incomingCallRequest && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
-          <div className="w-full max-w-sm glass-panel p-8 rounded-3xl text-center space-y-6 border border-indigo-500/40 shadow-2xl relative overflow-hidden text-white bg-[#0D121F]">
-            <div className="relative w-24 h-24 mx-auto rounded-full bg-indigo-500/20 flex items-center justify-center border-2 border-indigo-400">
-              <PhoneCall className="w-10 h-10 text-indigo-400 animate-bounce" />
-              <span className="absolute inset-0 rounded-full border-4 border-indigo-500/40 animate-ping"></span>
-            </div>
-            
-            <div>
-              <span className="px-3.5 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-extrabold uppercase tracking-widest rounded-full">
-                Incoming Video Call Ringing...
-              </span>
-              <h3 className="text-xl font-extrabold mt-3 text-white font-outfit">
-                {incomingCallRequest.senderName}
-              </h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Wants to start session: <span className="font-bold text-indigo-400">{incomingCallRequest.sessionObj.topic}</span>
-              </p>
-            </div>
-
-            <div className="flex gap-4 pt-2">
-              <button 
-                onClick={() => {
-                  socketRef.current?.emit('end_call', { targetUserId: incomingCallRequest.senderId });
-                  setIncomingCallRequest(null);
-                }} 
-                className="flex-1 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 text-xs font-bold rounded-xl shadow-lg shadow-red-500/10 transition-all"
-              >
-                Decline
-              </button>
-              <button 
-                onClick={() => {
-                  const session = incomingCallRequest.sessionObj;
-                  setIncomingCallRequest(null);
-                  startMeeting(session);
-                }} 
-                className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 text-white text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02]"
-              >
-                Attend Call
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

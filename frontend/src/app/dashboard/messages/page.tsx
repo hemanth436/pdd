@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Mail, Send, User, Bell, CheckCircle2, Circle } from 'lucide-react';
+import { Mail, Send, User, Bell, CheckCircle2, Circle, MessageSquare } from 'lucide-react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import Link from 'next/link';
+import { getApiUrl, getSocketUrl } from '@/lib/api';
 
 interface MessageItem {
   _id?: string;
@@ -33,7 +34,7 @@ export default function MessagesPage() {
   const socketRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const apiUri = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5001' && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5000' ? process.env.NEXT_PUBLIC_API_URL : '';
+  const apiUri = getApiUrl();
 
   useEffect(() => {
     const stored = localStorage.getItem('sep_user');
@@ -49,7 +50,7 @@ export default function MessagesPage() {
     if (!activeUser) return;
     const userId = activeUser.id || activeUser._id;
 
-    const socket = io(apiUri);
+    const socket = io(getSocketUrl());
     socketRef.current = socket;
 
     // Register active user online status
@@ -91,7 +92,7 @@ export default function MessagesPage() {
       });
       const sent = res.data.sent || [];
       const received = res.data.received || [];
-      const allRequests = [...sent,...received];
+      const allRequests = [...sent, ...received];
       
       // Filter strictly for accepted swap requests
       const accepted = allRequests.filter(r => r.status === 'accepted');
@@ -113,25 +114,13 @@ export default function MessagesPage() {
         };
       });
 
-      // Default peer contact if user has no accepted swap requests yet
-      const defaultPeers: PeerItem[] = [
-        {
-          id: '65b2f2d9-c12b-4b27-a812-345678901234',
-          fullName: 'Hemanth Reddy (Admin)',
-          username: 'admin',
-          category: 'Web Development Swap'
-        },
-        {
-          id: '65b2f2d9-c12b-4b27-a812-345678901235',
-          fullName: 'Sarah Jenkins',
-          username: 'demo',
-          category: 'Mobile Application Swap'
-        }
-      ];
-
-      const combinedPeers = [...dbPeers, ...defaultPeers];
-      const uniquePeers = combinedPeers.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+      const uniquePeers = dbPeers.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
       setPeers(uniquePeers);
+
+      // Auto-select first accepted contact if available
+      if (uniquePeers.length > 0 && !selectedPeer) {
+        setSelectedPeer(uniquePeers[0]);
+      }
     } catch (err) {
       console.warn('Failed to load accepted peers.');
       setPeers([]);
@@ -213,7 +202,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="space-y-8 relative">
+    <div className="space-y-8 relative animate-fade-in">
       {/* Floating Message Notification Toast */}
       {notificationToast && (
         <div className="fixed top-6 right-6 z-[100] glass-panel bg-[#0D121F] border border-indigo-500/40 p-4 rounded-2xl shadow-2xl flex items-center gap-3 text-white max-w-sm animate-bounce">
@@ -249,12 +238,14 @@ export default function MessagesPage() {
           
           <div className="space-y-1.5 overflow-y-auto flex-1">
             {peers.length === 0 ? (
-              <div className="text-center py-8 px-3 border border-dashed border-slate-200 dark:border-slate-800/60 rounded-2xl bg-slate-100/5">
-                <span className="text-[10px] font-semibold text-slate-400 block mb-3 leading-relaxed">
-                  No accepted swap contacts found yet. Accept swap requests to start chatting!
-                </span>
-                <Link href="/dashboard/requests" className="inline-block px-3.5 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-[10px] font-bold text-white rounded-lg transition-transform hover:scale-[1.02]">
-                  View Requests
+              <div className="text-center py-10 px-4 border border-dashed border-slate-200 dark:border-slate-800/60 rounded-2xl bg-slate-100/5 space-y-3">
+                <Mail className="w-8 h-8 text-slate-400 mx-auto opacity-50" />
+                <span className="text-xs font-bold text-slate-300 block">No accepted contacts yet</span>
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  When you or a peer accept a skill swap request, your chat thread will automatically open here!
+                </p>
+                <Link href="/dashboard/requests" className="inline-block px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-xs font-bold text-white rounded-xl shadow-md transition-transform hover:scale-[1.02]">
+                  Go to Requests
                 </Link>
               </div>
             ) : (
@@ -266,7 +257,7 @@ export default function MessagesPage() {
                   <button
                     key={peer.id}
                     onClick={() => setSelectedPeer(peer)}
-                    className={`w-full text-left p-3 rounded-xl flex items-center justify-between gap-3 transition-colors ${isSelected ? 'bg-indigo-500 text-white' : 'text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'}`}
+                    className={`w-full text-left p-3 rounded-xl flex items-center justify-between gap-3 transition-colors ${isSelected ? 'bg-indigo-500 text-white shadow-md' : 'text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'}`}
                   >
                     <div className="flex items-center gap-3 overflow-hidden">
                       <div className="relative">
@@ -330,7 +321,7 @@ export default function MessagesPage() {
               <div className="flex-1 p-6 overflow-y-auto space-y-4">
                 {messages.length === 0 ? (
                   <div className="text-center py-12 text-slate-400 text-xs">
-                    <p className="font-semibold text-slate-300">No previous messages.</p>
+                    <p className="font-semibold text-slate-300">No previous messages yet.</p>
                     <p className="text-xxs text-slate-500 mt-1">Send a message to start real-time chat with {selectedPeer.fullName}!</p>
                   </div>
                 ) : (
@@ -370,9 +361,14 @@ export default function MessagesPage() {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
-              <Mail className="w-12 h-12 text-indigo-400/60 mb-3" />
+              <MessageSquare className="w-12 h-12 text-indigo-400/60 mb-3" />
               <h3 className="text-base font-bold text-slate-850 dark:text-gray-200 mb-1">Your Chat Inbox</h3>
-              <p className="text-slate-400 text-xs max-w-xs leading-relaxed">Select an accepted peer contact on the sidebar to view online status and start real-time messaging.</p>
+              <p className="text-slate-400 text-xs max-w-xs leading-relaxed">
+                Accept skill swap requests in the Requests panel to unlock real-time messaging with your peer mentors.
+              </p>
+              <Link href="/dashboard/requests" className="mt-4 px-4 py-2 bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md">
+                View Requests
+              </Link>
             </div>
           )}
         </div>

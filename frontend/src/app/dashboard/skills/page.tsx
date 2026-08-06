@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { FolderPlus, Trash2, Award, Plus, X, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
 import axios from 'axios';
+import { getApiUrl } from '@/lib/api';
 
 interface SkillItem {
   _id: string;
@@ -44,7 +45,7 @@ export default function SkillsPage() {
   const [modalSuccess, setModalSuccess] = useState('');
   const [modalError, setModalError] = useState('');
 
-  const apiUri = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5001' && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5000' ? process.env.NEXT_PUBLIC_API_URL : '';
+  const apiUri = getApiUrl();
 
   useEffect(() => {
     const stored = localStorage.getItem('sep_user');

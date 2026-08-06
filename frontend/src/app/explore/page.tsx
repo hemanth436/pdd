@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, MapPin, Star, User, Send, Shield, Compass, BookOpen } from 'lucide-react';
 import axios from 'axios';
+import { getApiUrl } from '@/lib/api';
 
 interface Skill {
   _id: string;
@@ -57,7 +58,7 @@ export default function ExplorePage() {
 
   const fetchSentRequests = async (userId: string) => {
     try {
-      const apiUri = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5001' && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5000' ? process.env.NEXT_PUBLIC_API_URL : '';
+      const apiUri = getApiUrl();
       const res = await axios.get(`${apiUri}/api/requests`, {
         params: { userId }
       });
@@ -71,40 +72,14 @@ export default function ExplorePage() {
 
   const fetchSkillsData = async () => {
     try {
-      const apiUri = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5001' && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5000' ? process.env.NEXT_PUBLIC_API_URL : '';
+      const apiUri = getApiUrl();
       const res = await axios.get(`${apiUri}/api/skills`, {
         params: { category, type, search }
       });
-      setSkills(res.data);
+      setSkills(res.data || []);
     } catch (err) {
-      // Load mock items for preview
-      const mockSkills: Skill[] = [
-        {
-          _id: 's101',
-          userId: { _id: 'u1', fullName: 'Sarah Jenkins', profilePhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', skillsOffered: 'Mobile Dev' },
-          title: 'Swift & iOS Core Architecture',
-          description: 'Learn MVC/MVVM layout modeling, state widgets, and API fetching bindings in SwiftUI.',
-          category: 'Mobile Development',
-          type: 'offered'
-        },
-        {
-          _id: 's102',
-          userId: { _id: 'u2', fullName: 'Alex Rivera', profilePhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', skillsOffered: 'Design' },
-          title: 'Interactive Figma Interfaces',
-          description: 'Figma component variables, layouts, and responsive prototyping rules.',
-          category: 'Graphic Design',
-          type: 'offered'
-        },
-        {
-          _id: 's103',
-          userId: { _id: 'u3', fullName: 'Dr. Kenji Sato', profilePhoto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', skillsOffered: 'Data Science' },
-          title: 'PyTorch ML Deep Learning',
-          description: 'Gradient descents, convolution neural nets (CNN), and model weights.',
-          category: 'AI & Machine Learning',
-          type: 'offered'
-        }
-      ];
-      setSkills(mockSkills);
+      console.warn('Failed to fetch live skills.');
+      setSkills([]);
     }
   };
 
@@ -120,7 +95,7 @@ export default function ExplorePage() {
     }
 
     try {
-      const apiUri = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5001' && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5000' ? process.env.NEXT_PUBLIC_API_URL : '';
+      const apiUri = getApiUrl();
       await axios.post(`${apiUri}/api/requests`, {
         requesterId: activeUser.id || activeUser._id,
         providerId: skill.userId._id,
@@ -130,17 +105,14 @@ export default function ExplorePage() {
       setRequestedSkillIds(prev => [...prev, skill._id]);
       setSelectedSkill(null);
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Request successfully simulated.';
+      const msg = err.response?.data?.message || 'Request failed to dispatch.';
       alert(msg);
-      if (msg.includes('already exists') || msg.includes('simulated')) {
-        setRequestedSkillIds(prev => [...prev, skill._id]);
-      }
       setSelectedSkill(null);
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-slate-50 dark:bg-[#0B0F19]">
+    <div className="flex-1 flex flex-col min-h-screen bg-slate-50 dark:bg-[#0B0F19] transition-colors duration-500">
       {/* Header bar */}
       <header className="sticky top-0 z-50 glass-panel border-b border-slate-200/50 dark:border-slate-800/50 py-4 px-6 md:px-12 flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2 font-extrabold text-xl font-outfit text-indigo-600 dark:text-indigo-400">
@@ -201,47 +173,57 @@ export default function ExplorePage() {
         </div>
 
         {/* Grid Lists */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {skills.map((skill) => (
-            <div key={skill._id} className="glass-panel p-6 rounded-2xl flex flex-col justify-between hover:border-indigo-500/50 transition-all">
-              <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <img
-                    src={skill.userId?.profilePhoto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
-                    className="w-10 h-10 rounded-full object-cover border border-indigo-500"
-                    alt="avatar"
-                  />
-                  <div>
-                    <strong className="text-sm block">{skill.userId?.fullName || 'Anonymous User'}</strong>
-                    <span className="text-xs text-slate-500 dark:text-gray-400">Teaches: {skill.userId?.skillsOffered || skill.category}</span>
+        {skills.length === 0 ? (
+          <div className="glass-panel p-12 rounded-3xl text-center border border-dashed border-slate-200 dark:border-slate-800">
+            <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-3 opacity-60" />
+            <h3 className="text-lg font-bold font-outfit">No skills listed yet</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 max-w-sm mx-auto">
+              Be the first community member to publish a skill competency in your dashboard!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {skills.map((skill) => (
+              <div key={skill._id} className="glass-panel p-6 rounded-2xl flex flex-col justify-between hover:border-indigo-500/50 transition-all">
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <img
+                      src={skill.userId?.profilePhoto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
+                      className="w-10 h-10 rounded-full object-cover border border-indigo-500"
+                      alt="avatar"
+                    />
+                    <div>
+                      <strong className="text-sm block">{skill.userId?.fullName || 'Anonymous User'}</strong>
+                      <span className="text-xs text-slate-500 dark:text-gray-400">Teaches: {skill.userId?.skillsOffered || skill.category}</span>
+                    </div>
                   </div>
+
+                  <span className="inline-block px-3 py-1 bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 text-xxs font-bold uppercase tracking-wider rounded-full mb-3">
+                    {skill.category} ({skill.type})
+                  </span>
+
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">{skill.title}</h3>
+                  <p className="text-slate-500 dark:text-gray-400 text-xs leading-relaxed mb-6 line-clamp-3">{skill.description}</p>
                 </div>
 
-                <span className="inline-block px-3 py-1 bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 text-xxs font-bold uppercase tracking-wider rounded-full mb-3">
-                  {skill.category} ({skill.type})
-                </span>
-
-                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">{skill.title}</h3>
-                <p className="text-slate-500 dark:text-gray-400 text-xs leading-relaxed mb-6 line-clamp-3">{skill.description}</p>
-              </div>
-
-              <div className="flex justify-between items-center mt-auto border-t border-slate-200/50 dark:border-slate-800/50 pt-4">
-                <button onClick={() => setSelectedSkill(skill)} className="text-xs font-bold text-slate-500 hover:text-indigo-500">
-                  View Detail
-                </button>
-                {requestedSkillIds.includes(skill._id) ? (
-                  <button disabled className="flex items-center gap-1 px-4 py-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs font-bold rounded-lg cursor-not-allowed">
-                    Requested
+                <div className="flex justify-between items-center mt-auto border-t border-slate-200/50 dark:border-slate-800/50 pt-4">
+                  <button onClick={() => setSelectedSkill(skill)} className="text-xs font-bold text-slate-500 hover:text-indigo-500">
+                    View Detail
                   </button>
-                ) : (
-                  <button onClick={() => handleSendSwap(skill)} className="flex items-center gap-1 px-4 py-2 bg-indigo-500 text-white text-xs font-bold rounded-lg hover:brightness-110">
-                    <Send className="w-3.5 h-3.5" /> Request Swap
-                  </button>
-                )}
+                  {requestedSkillIds.includes(skill._id) ? (
+                    <button disabled className="flex items-center gap-1 px-4 py-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs font-bold rounded-lg cursor-not-allowed">
+                      Requested
+                    </button>
+                  ) : (
+                    <button onClick={() => handleSendSwap(skill)} className="flex items-center gap-1 px-4 py-2 bg-indigo-500 text-white text-xs font-bold rounded-lg hover:brightness-110">
+                      <Send className="w-3.5 h-3.5" /> Request Swap
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </main>
 
       {/* Details Overlay Modal */}

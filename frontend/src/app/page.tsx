@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Code, Palette, Smartphone, LineChart, Brain, Video, Heart, Shield, HelpCircle, MessageSquare, CheckCircle2, Zap, Users, Sparkles, Star } from 'lucide-react';
 import axios from 'axios';
+import { getApiUrl } from '@/lib/api';
 
 // Category icons map
 const categoryIcons: { [key: string]: any } = {
@@ -41,7 +42,7 @@ export default function LandingPage() {
   const handleFeedbackSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const apiUri = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5001' && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5000' ? process.env.NEXT_PUBLIC_API_URL : '';
+      const apiUri = getApiUrl();
       await axios.post(`${apiUri}/api/feedback`, { name, email, messageText: message });
       setFeedbackSuccess(true);
       setName('');

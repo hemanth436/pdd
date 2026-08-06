@@ -5,6 +5,7 @@ import { HelpCircle, CheckCircle, XCircle, Clock, Sparkles, MessageSquare, Video
 import axios from 'axios';
 import Link from 'next/link';
 import io from 'socket.io-client';
+import { getApiUrl, getSocketUrl } from '@/lib/api';
 
 interface RequestItem {
   _id: string;
@@ -36,7 +37,7 @@ export default function RequestsPage() {
 
   const socketRef = useRef<any>(null);
 
-  const apiUri = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5001' && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5000' ? process.env.NEXT_PUBLIC_API_URL : '';
+  const apiUri = getApiUrl();
 
   useEffect(() => {
     const stored = localStorage.getItem('sep_user');
@@ -46,7 +47,7 @@ export default function RequestsPage() {
       fetchRequests(user);
 
       // Connect to Socket.IO for real-time request updates
-      const socket = io(apiUri);
+      const socket = io(getSocketUrl());
       socketRef.current = socket;
 
       socket.on('swap_request_created', (data: any) => {

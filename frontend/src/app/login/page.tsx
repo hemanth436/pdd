@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Shield, Lock, User } from 'lucide-react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { getApiUrl } from '@/lib/api';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -16,7 +17,7 @@ export default function LoginPage() {
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const apiUri = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5001' && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5000' ? process.env.NEXT_PUBLIC_API_URL : '';
+      const apiUri = getApiUrl();
       const res = await axios.post(`${apiUri}/api/auth/login`, { username, password });
       
       // Save credentials session cache

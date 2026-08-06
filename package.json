@@ -4,6 +4,7 @@
   "private": true,
   "description": "Skill Exchange Web Application - Next.js Frontend & Express/Node.js Backend",
   "scripts": {
+    "dev": "npx concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run dev",
     "build:frontend": "npm --prefix frontend run build",

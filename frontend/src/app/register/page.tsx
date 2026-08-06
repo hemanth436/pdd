@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Shield } from 'lucide-react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { getApiUrl } from '@/lib/api';
 
 const categories = [
   'Programming',
@@ -61,7 +62,7 @@ export default function RegisterPage() {
     }
 
     try {
-      const apiUri = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5001' && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5000' ? process.env.NEXT_PUBLIC_API_URL : '';
+      const apiUri = getApiUrl();
       await axios.post(`${apiUri}/api/auth/register`, {
         fullName, email, mobileNumber, username, password, role, skillsOffered, skillsNeeded
       });

@@ -16,6 +16,7 @@ import {
   Unlock
 } from 'lucide-react';
 import axios from 'axios';
+import { getApiUrl } from '@/lib/api';
 
 interface AdminStats {
   total_users: number;
@@ -54,7 +55,7 @@ export default function AdminPanelPage() {
   const [loading, setLoading] = useState(true);
   const [actionSuccess, setActionSuccess] = useState('');
 
-  const apiUri = process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5001' && process.env.NEXT_PUBLIC_API_URL !== 'http://localhost:5000' ? process.env.NEXT_PUBLIC_API_URL : '';
+  const apiUri = getApiUrl();
 
   useEffect(() => {
     // Basic admin check from session cache
