@@ -32,21 +32,7 @@ export default function LoginPage() {
 
       router.push('/dashboard');
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || 'Login failed. Please verify credentials.');
-      // Emulate mock login fallback if username & password provided
-      if (username && password && !err.response) {
-        const mockUser = {
-          id: 'mock_99',
-          fullName: username,
-          email: `${username}@skillexchange.com`,
-          username: username,
-          role: 'both',
-          status: 'active'
-        };
-        localStorage.setItem('sep_token', 'mock_token_jwt');
-        localStorage.setItem('sep_user', JSON.stringify(mockUser));
-        router.push('/dashboard');
-      }
+      setErrorMsg(err.response?.data?.message || 'Invalid email or password. Please verify your credentials or register an account.');
     }
   };
 

@@ -1,17 +1,20 @@
 import { Capacitor } from '@capacitor/core';
 
 /**
- * Dynamic API URL and WebSocket URL Resolver for Web and Android/iOS Mobile Environments
+ * Dynamic API URL and WebSocket URL Resolver for Web and Mobile (Capacitor) Environments
  */
 export function getApiUrl(): string {
-  // 1. If running inside Capacitor Native Mobile App (Android/iOS)
-  if (typeof window !== 'undefined' && typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
-    // Mac host IP address on local network
-    const hostIp = '10.71.157.20';
-    return `http://${hostIp}:5001`;
+  // 1. Prioritize environment variable override (Live Render Backend: https://skillmobile-app.onrender.com)
+  if (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim() !== '') {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
   }
 
-  // 2. Client-side dynamic host resolution (works for mobile browsers on Wi-Fi or custom domains)
+  // 2. Fallback for Capacitor Native Mobile App when env var isn't present
+  if (typeof window !== 'undefined' && typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
+    return 'https://skillmobile-app.onrender.com';
+  }
+
+  // 3. Client-side dynamic host resolution for custom domains / Wi-Fi IP
   if (typeof window !== 'undefined' && window.location && window.location.hostname) {
     const hostname = window.location.hostname;
     if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
@@ -19,12 +22,7 @@ export function getApiUrl(): string {
     }
   }
 
-  // 3. Environment variable override
-  if (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim() !== '') {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
-  }
-
-  // 4. Default fallback for local desktop web development
+  // 4. Default fallback
   return 'http://localhost:5001';
 }
 

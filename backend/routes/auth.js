@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const { db, supabase, supabaseAdmin } = require('../config/supabase');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'skillswapexchangesecretkey';
@@ -46,8 +47,12 @@ router.post('/register', async (req, res) => {
   try {
     const { fullName, email, password, role, skillsOffered, skillsNeeded } = req.body;
 
-    if (!email) {
+    if (!email || !email.trim()) {
       return res.status(400).json({ message: 'Email address is mandatory' });
+    }
+
+    if (!password || password.trim().length < 4) {
+      return res.status(400).json({ message: 'Password must be at least 4 characters long' });
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -55,16 +60,17 @@ router.post('/register', async (req, res) => {
     // Check if profile exists in database
     const { data: existingProfile } = await db.from('profiles').select('*').eq('email', cleanEmail).single();
     if (existingProfile) {
-      return res.status(409).json({ message: 'Email already registered' });
+      return res.status(409).json({ message: 'Email already registered. Please login.' });
     }
+
+    const hashedPassword = bcrypt.hashSync(password, 10);
 
     // Register user in Supabase Auth (Authentication -> Users table)
     let authUserId = null;
     try {
-      // 1st Preference: Create confirmed user via Supabase Admin API
-      const { data: adminUserData, error: adminErr } = await supabaseAdmin.auth.admin.createUser({
+      const { data: adminUserData } = await supabaseAdmin.auth.admin.createUser({
         email: cleanEmail,
-        password: password || 'password123',
+        password: password,
         email_confirm: true,
         user_metadata: { full_name: fullName || cleanEmail.split('@')[0] }
       });
@@ -75,10 +81,9 @@ router.post('/register', async (req, res) => {
 
     if (!authUserId) {
       try {
-        // Fallback: Standard Supabase SignUp
         const { data: authData } = await supabase.auth.signUp({
           email: cleanEmail,
-          password: password || 'password123',
+          password: password,
           options: { data: { full_name: fullName || cleanEmail.split('@')[0] } }
         });
         if (authData?.user?.id) authUserId = authData.user.id;
@@ -95,6 +100,7 @@ router.post('/register', async (req, res) => {
         id: userId,
         name: fullName || cleanEmail.split('@')[0],
         email: cleanEmail,
+        password_hash: hashedPassword,
         role: isAdminRole ? 'admin' : (role || 'both'),
         avatar: avatarText,
         bio: skillsOffered || 'SkillSwap Member',
@@ -117,76 +123,79 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// 2. Login User (Smart Seamless Authentication with Supabase)
+// 2. Login User (Strict Password Authentication)
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    if (!username) {
+    if (!username || !username.trim()) {
       return res.status(400).json({ message: 'Please provide username or email' });
     }
 
-    const cleanInput = username.trim();
-    const targetEmail = cleanInput.includes('@') ? cleanInput.toLowerCase() : `${cleanInput.toLowerCase()}@skillexchange.com`;
-    const isAdminInput = cleanInput.toLowerCase().includes('admin');
+    if (!password || !password.trim()) {
+      return res.status(400).json({ message: 'Please enter your password' });
+    }
 
-    // Query profile by email
+    const cleanInput = username.trim().toLowerCase();
+    const targetEmail = cleanInput.includes('@') ? cleanInput : `${cleanInput}@skillexchange.com`;
+
+    // Query profile by email or matching name
     let { data: profile } = await db.from('profiles').select('*').eq('email', targetEmail).single();
 
     if (!profile) {
       const { data: matchedProfiles } = await db.from('profiles').select('*');
       if (matchedProfiles && matchedProfiles.length > 0) {
-        profile = matchedProfiles.find(p => p.email.toLowerCase().includes(cleanInput.toLowerCase()) || p.name.toLowerCase().includes(cleanInput.toLowerCase()));
+        profile = matchedProfiles.find(p => p.email.toLowerCase() === cleanInput || (p.email.toLowerCase().split('@')[0] === cleanInput));
       }
     }
 
-    if (profile && isAdminInput) {
-      profile.role = 'admin';
-    }
-
-    // Auto-create profile in Supabase Auth & Database if missing
+    // 1. Account existence check
     if (!profile) {
-      let newUserId = 'usr_' + Date.now();
-      try {
-        const { data: adminUserData } = await supabaseAdmin.auth.admin.createUser({
-          email: targetEmail,
-          password: password || 'password123',
-          email_confirm: true,
-          user_metadata: { full_name: cleanInput }
-        });
-        if (adminUserData?.user?.id) newUserId = adminUserData.user.id;
-      } catch (_e) {}
-
-      const formattedName = cleanInput.charAt(0).toUpperCase() + cleanInput.slice(1);
-      
-      const { data: createdProfile } = await db
-        .from('profiles')
-        .insert([{
-          id: newUserId,
-          name: formattedName,
-          email: targetEmail,
-          role: isAdminInput ? 'admin' : 'both',
-          avatar: cleanInput.substring(0, 2).toUpperCase(),
-          bio: isAdminInput ? 'Global Moderator & Admin.' : 'Web Development',
-          approved: true,
-          suspended: false,
-          last_login: new Date().toISOString()
-        }])
-        .select()
-        .single();
-      
-      profile = createdProfile || { id: newUserId, name: formattedName, email: targetEmail, role: isAdminInput ? 'admin' : 'both' };
-    } else {
-      // Update last_login timestamp in Supabase profiles
-      await db.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', profile.id);
+      return res.status(401).json({ message: 'Invalid credentials. User account does not exist. Please register first.' });
     }
 
+    // 2. Suspended check
     if (profile.suspended) {
-      return res.status(403).json({ message: 'This user account has been suspended' });
+      return res.status(403).json({ message: 'This user account has been suspended by an administrator.' });
     }
+
+    // 3. Password Verification
+    let isPasswordValid = false;
+
+    // Check hashed password stored in profile
+    if (profile.password_hash) {
+      isPasswordValid = bcrypt.compareSync(password, profile.password_hash);
+    }
+
+    // Supabase Auth verification
+    if (!isPasswordValid) {
+      try {
+        const { data: supabaseAuth, error: authErr } = await supabase.auth.signInWithPassword({
+          email: profile.email,
+          password: password
+        });
+        if (supabaseAuth?.session && !authErr) {
+          isPasswordValid = true;
+        }
+      } catch (_e) {}
+    }
+
+    // Demo account seed passkeys fallback (for initial system demo profiles)
+    if (!isPasswordValid && (profile.email === 'admin@skillexchange.com' || profile.email === 'demo@skillexchange.com')) {
+      if (password === 'password123' || password === 'admin123' || password === 'demo123') {
+        isPasswordValid = true;
+      }
+    }
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Incorrect password. Access denied.' });
+    }
+
+    // Update last_login timestamp in Supabase profiles
+    await db.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', profile.id);
 
     // Record login event in logins table
-    await recordLoginEvent(profile.id, targetEmail, req.ip, req.headers['user-agent']);
+    await recordLoginEvent(profile.id, profile.email, req.ip, req.headers['user-agent']);
 
     const userObj = formatProfileUser(profile);
     const token = jwt.sign({ id: userObj.id, role: userObj.role }, JWT_SECRET, { expiresIn: '24h' });
